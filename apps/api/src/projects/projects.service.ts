@@ -49,7 +49,7 @@ export class ProjectsService {
       [userId],
     );
 
-    return result.rows.map((r) => ({
+    return result.rows.map((r: { id: string; name: string; created_at: string; key: string }) => ({
       id: r.id,
       name: r.name,
       createdAt: r.created_at,

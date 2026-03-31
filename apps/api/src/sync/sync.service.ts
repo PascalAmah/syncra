@@ -220,7 +220,7 @@ export class SyncService {
 
     return {
       records: result.rows,
-      deletedRecordIds: deletedResult.rows.map((r) => r.record_id),
+      deletedRecordIds: deletedResult.rows.map((r: { record_id: string }) => r.record_id),
     };
   }
 
