@@ -1,0 +1,28 @@
+{
+  "name": "syncra-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Syncra offline-first sync engine monorepo",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "infra/scripts"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "fast-check": "^4.6.0",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

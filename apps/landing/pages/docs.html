@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Documentation | Syncra</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#69daff", "on-primary": "#004a5d", "primary-container": "#00cffc",
+            "on-primary-container": "#004050",
+            "tertiary": "#a1ffef", "on-tertiary": "#006459",
+            "error": "#ff716c", "error-dim": "#d7383b",
+            "surface": "#0e0e0e", "surface-container-lowest": "#000000",
+            "surface-container-low": "#131313", "surface-container": "#1a1919",
+            "surface-container-high": "#201f1f", "surface-container-highest": "#262626",
+            "on-surface": "#ffffff", "on-surface-variant": "#adaaaa",
+            "outline": "#777575", "outline-variant": "#494847",
+            "background": "#0e0e0e",
+          },
+          fontFamily: { "headline": ["Space Grotesk"], "body": ["Inter"] },
+          borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="/src/style.css"/>
+  <script src="/src/config.js"></script>
+</head>
+<body class="bg-surface text-on-surface">
+<div id="page-loader"><span class="loader"></span></div>
+<nav class="bg-surface/60 backdrop-blur-xl fixed top-0 w-full z-50 shadow-[0_20px_40px_rgba(255,255,255,0.04)] overflow-hidden">
+  <div class="flex items-center justify-between px-4 md:px-8 py-4 max-w-[1440px] mx-auto font-body text-sm tracking-tight min-w-0">
+    <div class="flex items-center gap-4 md:gap-12 min-w-0">
+      <a class="font-headline text-xl font-bold tracking-tighter text-white shrink-0" href="/">Syncra</a>
+      <div class="hidden md:flex gap-8 items-center">
+        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/#features">Features</a>
+        <a class="text-primary font-semibold" href="/pages/docs.html">Docs</a>
+        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/pages/playground.html">Playground</a>
+      </div>
+    </div>
+    <div class="flex items-center gap-3" id="nav-auth-area">
+      <a href="/pages/login.html" class="hidden sm:block text-on-surface-variant hover:text-white transition-colors text-sm font-medium px-4 py-2">Sign in</a>
+      <a href="/pages/signup.html" class="bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-sm hover:brightness-110 transition-all">Get Started</a>
+      <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-on-surface-variant hover:text-white transition-colors" aria-label="Toggle menu">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+    </div>
+  </div>
+  <div id="mobile-menu" class="md:hidden bg-surface-container border-t border-outline-variant/15 px-6 font-body text-sm">
+    <div class="flex flex-col gap-1 py-4">
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/#features" onclick="toggleMobileMenu()">Features</a>
+      <a class="text-primary font-semibold py-2" href="/pages/docs.html" onclick="toggleMobileMenu()">Docs</a>
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/pages/playground.html" onclick="toggleMobileMenu()">Playground</a>
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/pages/login.html" onclick="toggleMobileMenu()">Sign in</a>
+      <a href="/pages/signup.html" class="mt-2 bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-left w-fit">Get Started</a>
+    </div>
+  </div>
+</nav>
+<div class="md:hidden fixed top-16 left-0 right-0 z-40 bg-surface-container-low border-b border-outline-variant/15 px-6 py-3 flex items-center justify-between font-body text-sm">
+  <span class="text-on-surface-variant text-xs">Documentation</span>
+  <button onclick="toggleDocsSidebar()" class="flex items-center gap-1.5 text-primary font-medium text-xs">
+    <span class="material-symbols-outlined text-base">menu_book</span>
+    Menu
+  </button>
+</div>
+<div id="docs-sidebar-overlay" class="hidden fixed inset-0 bg-black/60 z-40 md:hidden" onclick="toggleDocsSidebar()"></div>
+<div id="docs-sidebar-drawer" class="hidden fixed top-0 left-0 bottom-0 w-72 bg-surface-container-low border-r border-outline-variant/15 z-50 md:hidden overflow-y-auto">
+  <div class="px-6 py-8 pt-20">
+    <div class="font-headline font-bold text-white mb-6 text-sm">Documentation</div>
+    <nav class="font-body text-sm" id="mobile-docs-nav"></nav>
+  </div>
+</div>
+<div class="flex min-h-screen pt-16">
+  <aside class="hidden md:block w-64 bg-surface-container-low border-r border-outline-variant/15 fixed top-16 bottom-0 left-0 overflow-y-auto">
+    <div class="px-6 py-8">
+      <div class="font-headline font-bold text-white mb-6 text-sm">Documentation</div>
+      <nav class="font-body text-sm" id="desktop-docs-nav"></nav>
+    </div>
+  </aside>
+  <main class="flex-1 md:ml-64 px-6 md:px-12 py-8 md:py-12 pb-24 md:pb-16 mt-10 md:mt-0">
+    <div class="max-w-3xl">
+      <section id="getting-started" class="mb-16">
+        <h1 class="font-headline text-3xl md:text-4xl font-bold text-white mb-2">Getting Started</h1>
+        <div class="h-px bg-outline-variant/20 mb-10"></div>
+        <section id="introduction" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">Introduction</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Syncra is an offline-first sync engine that lets you build applications that work seamlessly without a network connection. It manages local state in IndexedDB, queues operations when offline, and automatically syncs to your backend when connectivity is restored.</p>
+          <p class="text-on-surface-variant font-body leading-relaxed">The SDK handles conflict resolution, exponential backoff retries, and delta synchronization so you can focus on building features instead of managing network state.</p>
+        </section>
+        <section id="installation" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">Installation</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Install the Syncra SDK via npm or your preferred package manager:</p>
+          <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden mb-4">
+            <div class="flex items-center gap-2 px-4 py-3 bg-surface-container-highest border-b border-outline-variant/15">
+              <div class="w-3 h-3 rounded-full bg-error-dim"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div class="w-3 h-3 rounded-full bg-primary"></div>
+              <span class="ml-4 text-xs font-mono text-on-surface-variant">terminal</span>
+            </div>
+            <div class="p-4 font-mono text-sm"><span class="text-on-surface-variant">$</span> <span class="text-primary">npm install @syncra/sdk</span></div>
+          </div>
+        </section>
+        <section id="quick-start" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">Quick Start</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Initialize the SDK once at your app entry point:</p>
+          <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 py-3 bg-surface-container-highest border-b border-outline-variant/15">
+              <div class="w-3 h-3 rounded-full bg-error-dim"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div class="w-3 h-3 rounded-full bg-primary"></div>
+              <span class="ml-4 text-xs font-mono text-on-surface-variant">syncra-init.ts</span>
+            </div>
+            <div class="p-6 font-mono text-xs md:text-sm leading-loose overflow-x-auto">
+<pre><span class="text-error-dim">import</span> { <span class="text-primary">SyncraSDK</span> } <span class="text-error-dim">from</span> <span class="text-tertiary">'@syncra/sdk'</span>;
+
+<span class="text-error-dim">const</span> <span class="text-primary">sdk</span> = <span class="text-error-dim">new</span> <span class="text-primary">SyncraSDK</span>({
+  baseUrl: <span class="text-tertiary">'https://api.syncra.dev'</span>,
+  token: <span class="text-tertiary">'your-jwt-token'</span>,
+  syncInterval: <span class="text-primary">30000</span>,
+});
+
+<span class="text-error-dim">await</span> <span class="text-primary">sdk</span>.initialize();
+<span class="text-error-dim">await</span> <span class="text-primary">sdk</span>.createRecord({ title: <span class="text-tertiary">'My note'</span> });
+
+<span class="text-primary">sdk</span>.on(<span class="text-tertiary">'sync-complete'</span>, ({ applied }) =&gt; {
+  console.log(<span class="text-tertiary">`Synced ${applied} records`</span>);
+});</pre>
+            </div>
+          </div>
+        </section>
+      </section>
+      <section id="sdk-reference" class="mb-16">
+        <h1 class="font-headline text-3xl md:text-4xl font-bold text-white mb-2">SDK Reference</h1>
+        <div class="h-px bg-outline-variant/20 mb-10"></div>
+        <section id="syncrasdk" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">SyncraSDK</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">The main class. Instantiate once and reuse throughout your application.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm mb-4 overflow-x-auto">
+            <span class="text-error-dim">new</span> <span class="text-primary">SyncraSDK</span>(<span class="text-on-surface-variant">options</span>: <span class="text-tertiary">SyncraOptions</span>)
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm font-body border-collapse">
+              <thead><tr class="border-b border-outline-variant/20">
+                <th class="text-left py-2 pr-4 text-on-surface-variant font-medium">Option</th>
+                <th class="text-left py-2 pr-4 text-on-surface-variant font-medium">Type</th>
+                <th class="text-left py-2 text-on-surface-variant font-medium">Description</th>
+              </tr></thead>
+              <tbody class="text-on-surface-variant">
+                <tr class="border-b border-outline-variant/10"><td class="py-2.5 pr-4 font-mono text-primary text-xs">baseUrl</td><td class="py-2.5 pr-4 font-mono text-tertiary text-xs">string</td><td class="py-2.5">Your Syncra API endpoint</td></tr>
+                <tr class="border-b border-outline-variant/10"><td class="py-2.5 pr-4 font-mono text-primary text-xs">token</td><td class="py-2.5 pr-4 font-mono text-tertiary text-xs">string</td><td class="py-2.5">JWT auth token</td></tr>
+                <tr class="border-b border-outline-variant/10"><td class="py-2.5 pr-4 font-mono text-primary text-xs">syncInterval</td><td class="py-2.5 pr-4 font-mono text-tertiary text-xs">number</td><td class="py-2.5">Sync interval in ms (default: 30000)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section id="createrecord" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">createRecord</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Creates a new record locally and queues it for sync. Returns immediately — no network required.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
+            <span class="text-primary">sdk</span>.<span class="text-tertiary">createRecord</span>(<span class="text-on-surface-variant">data</span>): <span class="text-error-dim">Promise</span>&lt;<span class="text-tertiary">SyncRecord</span>&gt;
+          </div>
+        </section>
+        <section id="sync" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">sync()</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Manually trigger a sync cycle. Pushes queued operations and pulls remote updates.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
+            <span class="text-primary">sdk</span>.<span class="text-tertiary">sync</span>(): <span class="text-error-dim">Promise</span>&lt;<span class="text-tertiary">SyncResult</span>&gt;
+          </div>
+        </section>
+        <section id="events" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">Events</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Subscribe using <code class="bg-surface-container px-2 py-0.5 rounded text-primary font-mono text-xs">sdk.on(event, handler)</code>.</p>
+          <div class="space-y-3">
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">sync-complete</code><p class="text-on-surface-variant text-sm font-body">Fired after a successful sync. Payload: <code class="text-tertiary font-mono text-xs">{ applied, pushed }</code></p></div>
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">conflict</code><p class="text-on-surface-variant text-sm font-body">Fired when a conflict is detected. Payload: <code class="text-tertiary font-mono text-xs">ConflictEvent</code></p></div>
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">online</code><p class="text-on-surface-variant text-sm font-body">Fired when connectivity is restored.</p></div>
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">offline</code><p class="text-on-surface-variant text-sm font-body">Fired when the device goes offline.</p></div>
+          </div>
+        </section>
+      </section>
+      <section id="api-reference" class="mb-16">
+        <h1 class="font-headline text-3xl md:text-4xl font-bold text-white mb-2">API Reference</h1>
+        <div class="h-px bg-outline-variant/20 mb-10"></div>
+        <section id="authentication-api" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">Authentication</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">All API requests require a Bearer token in the Authorization header.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
+            <span class="text-on-surface-variant">Authorization:</span> <span class="text-tertiary">Bearer &lt;your-jwt-token&gt;</span>
+          </div>
+        </section>
+        <section id="post-sync" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">POST /sync</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Push a batch of queued operations to the server. Processed atomically with idempotency keys.</p>
+          <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 py-3 bg-surface-container-highest border-b border-outline-variant/15">
+              <div class="w-3 h-3 rounded-full bg-error-dim"></div><div class="w-3 h-3 rounded-full bg-yellow-500"></div><div class="w-3 h-3 rounded-full bg-primary"></div>
+              <span class="ml-4 text-xs font-mono text-on-surface-variant">request.json</span>
+            </div>
+            <div class="p-5 font-mono text-xs leading-loose overflow-x-auto">
+<pre>{
+  <span class="text-primary">"operations"</span>: [{
+    <span class="text-primary">"id"</span>: <span class="text-tertiary">"op_abc123"</span>,
+    <span class="text-primary">"type"</span>: <span class="text-tertiary">"create"</span>,
+    <span class="text-primary">"data"</span>: { <span class="text-primary">"title"</span>: <span class="text-tertiary">"My note"</span> },
+    <span class="text-primary">"timestamp"</span>: <span class="text-primary">1704067200000</span>
+  }]
+}</pre>
+            </div>
+          </div>
+        </section>
+        <section id="get-sync-updates" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">GET /sync/updates</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Fetch remote updates since a given timestamp. Returns delta records only.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
+            <span class="text-tertiary">GET</span> <span class="text-primary">/sync/updates?since=</span><span class="text-on-surface-variant">1704067200000</span>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+</div>
+<footer class="bg-surface-container-lowest border-t border-outline-variant/15">
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-8 px-6 md:px-8 py-16 max-w-[1440px] mx-auto font-body text-xs text-on-surface-variant">
+    <div class="col-span-2"><div class="font-headline text-lg font-bold text-white mb-4">Syncra</div><p class="max-w-xs mb-4">Infrastructure for the offline-first web.</p><p>© 2025 Syncra. All rights reserved.</p></div>
+    <div><h6 class="text-white font-bold mb-4">Product</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="/#features">Features</a></li><li><a class="hover:text-primary transition-colors" href="/pages/docs.html">Docs</a></li><li><a class="hover:text-primary transition-colors" href="/pages/playground.html">Playground</a></li></ul></div>
+    <div><h6 class="text-white font-bold mb-4">Resources</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="/pages/docs.html">Documentation</a></li><li><a class="hover:text-primary transition-colors" href="https://github.com" target="_blank">GitHub</a></li><li><a class="hover:text-primary transition-colors" href="https://npmjs.com/package/@syncra/sdk" target="_blank">npm</a></li></ul></div>
+    <div><h6 class="text-white font-bold mb-4">Legal</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="#">Privacy Policy</a></li><li><a class="hover:text-primary transition-colors" href="#">Terms</a></li></ul></div>
+  </div>
+</footer>
+<script>
+  const navItems = [
+    { label: 'Getting Started', children: [
+      { label: 'Introduction', id: 'introduction' },
+      { label: 'Installation', id: 'installation' },
+      { label: 'Quick Start', id: 'quick-start' },
+    ]},
+    { label: 'SDK Reference', children: [
+      { label: 'SyncraSDK', id: 'syncrasdk' },
+      { label: 'createRecord', id: 'createrecord' },
+      { label: 'sync()', id: 'sync' },
+      { label: 'Events', id: 'events' },
+    ]},
+    { label: 'API Reference', children: [
+      { label: 'Authentication', id: 'authentication-api' },
+      { label: 'POST /sync', id: 'post-sync' },
+      { label: 'GET /sync/updates', id: 'get-sync-updates' },
+    ]},
+  ];
+  function buildNav(container, closeFn) {
+    navItems.forEach(section => {
+      const h = document.createElement('div');
+      h.className = 'text-white font-semibold text-xs uppercase tracking-widest mb-2 mt-5 first:mt-0';
+      h.textContent = section.label;
+      container.appendChild(h);
+      section.children.forEach(item => {
+        const a = document.createElement('a');
+        a.href = '#' + item.id;
+        a.className = 'block py-1.5 px-3 rounded-lg text-on-surface-variant hover:text-white hover:bg-surface-container transition-colors text-sm';
+        a.textContent = item.label;
+        if (closeFn) a.addEventListener('click', closeFn);
+        container.appendChild(a);
+      });
+    });
+  }
+  buildNav(document.getElementById('desktop-docs-nav'));
+  buildNav(document.getElementById('mobile-docs-nav'), toggleDocsSidebar);
+  function toggleDocsSidebar() {
+    document.getElementById('docs-sidebar-drawer').classList.toggle('hidden');
+    document.getElementById('docs-sidebar-overlay').classList.toggle('hidden');
+  }
+</script>
+<script>
+  // Swap nav buttons based on auth state
+  (function() {
+    const token = localStorage.getItem('syncra_token');
+    if (!token) return;
+    const area = document.getElementById('nav-auth-area');
+    if (!area) return;
+    // Replace sign-in + get-started with a dashboard link
+    const dashLink = document.createElement('a');
+    dashLink.href = '/pages/dashboard.html';
+    dashLink.className = 'bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-sm hover:brightness-110 transition-all';
+    dashLink.textContent = 'Dashboard';
+    // Keep the mobile menu button
+    const menuBtn = area.querySelector('button');
+    area.innerHTML = '';
+    area.appendChild(dashLink);
+    if (menuBtn) area.appendChild(menuBtn);
+  })();
+</script>
+<script src="/src/main.js"></script>
+</body>
+</html>

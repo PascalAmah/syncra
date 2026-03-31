@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>My App | Syncra</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#69daff", "on-primary": "#004a5d", "primary-container": "#00cffc",
+            "on-primary-container": "#004050",
+            "tertiary": "#a1ffef", "on-tertiary": "#006459",
+            "error": "#ff716c", "error-dim": "#d7383b",
+            "surface": "#0e0e0e", "surface-container-lowest": "#000000",
+            "surface-container-low": "#131313", "surface-container": "#1a1919",
+            "surface-container-high": "#201f1f", "surface-container-highest": "#262626",
+            "on-surface": "#ffffff", "on-surface-variant": "#adaaaa",
+            "outline": "#777575", "outline-variant": "#494847",
+            "background": "#0e0e0e",
+          },
+          fontFamily: { "headline": ["Space Grotesk"], "body": ["Inter"] },
+          borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="/src/style.css"/>
+  <script>
+    function url(p) {
+      const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!local) return p;
+      const map = { '/login':'/pages/login.html', '/signup':'/pages/signup.html', '/dashboard':'/pages/dashboard.html', '/onboarding':'/pages/onboarding.html', '/project':'/pages/project.html' };
+      const [path, qs] = p.split('?');
+      const mapped = map[path] || path;
+      return qs ? `${mapped}?${qs}` : mapped;
+    }
+    (function() {
+      const token = localStorage.getItem('syncra_token');
+      if (!token) {
+        window.location.replace(url('/login'));
+        return;
+      }
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          localStorage.removeItem('syncra_token');
+          localStorage.removeItem('syncra_email');
+          window.location.replace(url('/login'));
+        }
+      } catch(e) {
+        localStorage.removeItem('syncra_token');
+        window.location.replace(url('/login'));
+      }
+    })();
+  </script>
+  <script src="/src/config.js"></script>
+</head>
+<body class="bg-surface text-on-surface" data-protected="true">
+<div id="page-loader"><span class="loader"></span></div>
+<nav class="bg-surface/60 backdrop-blur-xl fixed top-0 w-full z-50 shadow-[0_20px_40px_rgba(255,255,255,0.04)] overflow-hidden">
+  <div class="flex items-center justify-between px-4 md:px-8 py-4 max-w-[1440px] mx-auto font-body text-sm tracking-tight min-w-0">
+    <div class="flex items-center gap-4 md:gap-12 min-w-0">
+      <a class="font-headline text-xl font-bold tracking-tighter text-white shrink-0" href="/">Syncra</a>
+      <div class="hidden md:flex gap-8 items-center">
+        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/#features">Features</a>
+        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/pages/docs.html">Docs</a>
+        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/pages/playground.html">Playground</a>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="/pages/login.html" class="hidden sm:block text-on-surface-variant hover:text-white transition-colors text-sm font-medium px-4 py-2">Sign in</a>
+      <a href="/pages/signup.html" class="bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-sm hover:brightness-110 transition-all">
+        Get Started
+      </a>
+      <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-on-surface-variant hover:text-white transition-colors" aria-label="Toggle menu">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+    </div>
+  </div>
+  <div id="mobile-menu" class="md:hidden bg-surface-container border-t border-outline-variant/15 px-6 font-body text-sm">
+    <div class="flex flex-col gap-1 py-4">
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/#features" onclick="toggleMobileMenu()">Features</a>
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/pages/docs.html" onclick="toggleMobileMenu()">Docs</a>
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/pages/playground.html" onclick="toggleMobileMenu()">Playground</a>
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/pages/login.html" onclick="toggleMobileMenu()">Sign in</a>
+      <a href="/pages/signup.html" class="mt-2 bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-left w-fit">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<div class="flex min-h-screen pt-16">
+
+  <!-- Sidebar: desktop only -->
+  <aside class="hidden md:flex flex-col w-56 bg-surface-container-low border-r border-outline-variant/15 fixed top-16 bottom-0 left-0 px-4 py-6 gap-1">
+    <a href="/pages/dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
+      <span class="material-symbols-outlined text-base">folder_open</span>
+      Projects
+    </a>
+    <a href="/pages/api-keys.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
+      <span class="material-symbols-outlined text-base">key</span>
+      API Keys
+    </a>
+    <a href="/pages/docs.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
+      <span class="material-symbols-outlined text-base">menu_book</span>
+      Docs
+    </a>
+    <a href="/pages/settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
+      <span class="material-symbols-outlined text-base">settings</span>
+      Settings
+    </a>
+  </aside>
+
+  <!-- Mobile bottom tab bar -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container border-t border-outline-variant/15 flex z-40">
+    <a href="/pages/dashboard.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
+      <span class="material-symbols-outlined text-xl">folder_open</span>
+      <span class="text-[10px] font-medium">Projects</span>
+    </a>
+    <a href="/pages/api-keys.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
+      <span class="material-symbols-outlined text-xl">key</span>
+      <span class="text-[10px] font-medium">API Keys</span>
+    </a>
+    <a href="/pages/docs.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
+      <span class="material-symbols-outlined text-xl">menu_book</span>
+      <span class="text-[10px] font-medium">Docs</span>
+    </a>
+    <a href="/pages/settings.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
+      <span class="material-symbols-outlined text-xl">settings</span>
+      <span class="text-[10px] font-medium">Settings</span>
+    </a>
+  </nav>
+
+  <!-- Main content -->
+  <main class="flex-1 md:ml-56 px-6 md:px-10 py-8 pb-24 md:pb-8 w-full min-w-0 max-w-4xl overflow-x-hidden">
+
+    <!-- Header + breadcrumb -->
+    <div class="mb-8">
+      <div class="flex items-center gap-2 text-xs text-on-surface-variant font-body mb-2">
+        <a href="/pages/dashboard.html" class="hover:text-white transition-colors">Projects</a>
+        <span class="material-symbols-outlined text-sm">chevron_right</span>
+        <span id="project-name-breadcrumb" class="text-white">Loading…</span>
+      </div>
+      <h1 id="project-title" class="font-headline text-2xl font-bold text-white">Loading…</h1>
+    </div>
+
+    <!-- API Key section -->
+    <div class="bg-surface-container rounded-2xl border border-outline-variant/15 p-6 mb-6 reveal">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-primary text-lg">lock</span>
+        <h2 class="font-headline font-bold text-white">API Key</h2>
+      </div>
+      <div class="flex flex-col gap-3 mb-4">
+        <div id="api-key-display" class="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-lg px-4 py-3 font-mono text-sm text-on-surface-variant truncate">
+          Loading…
+        </div>
+        <div class="flex gap-2">
+          <button
+            onclick="copyApiKey()"
+            class="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-semibold font-body bg-surface-container-highest border border-outline-variant/40 text-on-surface hover:bg-surface-container-high transition-all"
+          >
+            <span class="material-symbols-outlined text-sm">content_copy</span>
+            Copy
+          </button>
+          <!--
+          <button
+            onclick="confirmRegenerate()"
+            class="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-semibold font-body bg-error/10 border border-error/30 text-error hover:bg-error/20 transition-all"
+          >
+            <span class="material-symbols-outlined text-sm">refresh</span>
+            Regenerate
+          </button>
+          -->
+        </div>
+      </div>
+      <div class="flex items-start gap-2 bg-error/5 border border-error/20 rounded-lg px-4 py-3">
+        <span class="material-symbols-outlined text-error text-sm mt-0.5">warning</span>
+        <p class="text-xs text-on-surface-variant font-body">Keep your API key secret. Never expose it in client-side code.</p>
+      </div>
+    </div>
+
+    <!-- Usage stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 reveal-stagger">
+      <div class="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
+        <div class="text-xs text-on-surface-variant font-body mb-2 uppercase tracking-widest">Total Records</div>
+        <div id="stat-records" class="font-headline text-3xl font-bold text-white">—</div>
+      </div>
+      <div class="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
+        <div class="text-xs text-on-surface-variant font-body mb-2 uppercase tracking-widest">Sync Operations</div>
+        <div id="stat-syncs" class="font-headline text-3xl font-bold text-white">—</div>
+      </div>
+    </div>
+
+    <!-- SDK Snippet -->
+    <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden reveal min-w-0">
+      <div class="flex items-center gap-2 px-4 py-3 bg-surface-container-highest border-b border-outline-variant/15">
+        <div class="w-3 h-3 rounded-full bg-error-dim"></div>
+        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+        <div class="w-3 h-3 rounded-full bg-primary"></div>
+        <span class="ml-4 text-xs font-mono text-on-surface-variant">syncra-init.ts</span>
+      </div>
+      <div class="p-6 md:p-8 font-mono text-xs md:text-sm leading-loose overflow-x-auto max-w-full">
+<pre class="min-w-0"><span class="text-error-dim">import</span> { <span class="text-primary">SyncraSDK</span> } <span class="text-error-dim">from</span> <span class="text-tertiary">'@syncra/sdk'</span>;
+
+<span class="text-error-dim">const</span> <span class="text-primary">sdk</span> = <span class="text-error-dim">new</span> <span class="text-primary">SyncraSDK</span>({
+  apiKey: <span id="sdk-api-key" class="text-tertiary">'syncra_pk_live_your_key_here'</span>,
+  baseUrl: <span class="text-tertiary">'https://api.syncra.dev'</span>,
+});
+
+<span class="text-error-dim">await</span> <span class="text-primary">sdk</span>.initialize();
+<span class="text-error-dim">await</span> <span class="text-primary">sdk</span>.createRecord({ name: <span class="text-tertiary">'Test'</span> });</pre>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<footer class="bg-surface-container-lowest border-t border-outline-variant/15 md:ml-56 pb-20 md:pb-0">
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-8 px-6 md:px-8 py-16 max-w-[1440px] mx-auto font-body text-xs text-on-surface-variant">
+    <div class="col-span-2">
+      <div class="font-headline text-lg font-bold text-white mb-4">Syncra</div>
+      <p class="max-w-xs mb-4">Infrastructure for the offline-first web.</p>
+      <p>© 2025 Syncra. All rights reserved.</p>
+    </div>
+    <div>
+      <h6 class="text-white font-bold mb-4">Product</h6>
+      <ul class="space-y-3">
+        <li><a class="hover:text-primary transition-colors" href="/#features">Features</a></li>
+        <li><a class="hover:text-primary transition-colors" href="/pages/docs.html">Docs</a></li>
+        <li><a class="hover:text-primary transition-colors" href="/pages/playground.html">Playground</a></li>
+      </ul>
+    </div>
+    <div>
+      <h6 class="text-white font-bold mb-4">Resources</h6>
+      <ul class="space-y-3">
+        <li><a class="hover:text-primary transition-colors" href="/pages/docs.html">Documentation</a></li>
+        <li><a class="hover:text-primary transition-colors" href="https://github.com" target="_blank">GitHub</a></li>
+        <li><a class="hover:text-primary transition-colors" href="https://npmjs.com/package/@syncra/sdk" target="_blank">npm</a></li>
+      </ul>
+    </div>
+    <div>
+      <h6 class="text-white font-bold mb-4">Legal</h6>
+      <ul class="space-y-3">
+        <li><a class="hover:text-primary transition-colors" href="#">Privacy Policy</a></li>
+        <li><a class="hover:text-primary transition-colors" href="#">Terms</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const API = window.SYNCRA_API;
+
+    function url(p) {
+      const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!local) return p;
+      const map = { '/login':'/pages/login.html', '/signup':'/pages/signup.html', '/dashboard':'/pages/dashboard.html', '/onboarding':'/pages/onboarding.html', '/project':'/pages/project.html' };
+      const [path, qs] = p.split('?');
+      const mapped = map[path] || path;
+      return qs ? `${mapped}?${qs}` : mapped;
+    }
+
+  // ── Auth guard ──────────────────────────────────────────────
+  const token = localStorage.getItem('syncra_token');
+  if (!token) {
+    window.location.replace(url('/login'));
+    throw new Error('unauthenticated');
+  }
+
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+  }
+
+  function logout() {
+    localStorage.removeItem('syncra_token');
+    localStorage.removeItem('syncra_email');
+    window.location.href = url('/login');
+  }
+
+  // ── Nav: show user email + logout ───────────────────────────
+  (function updateNav() {
+    const email = localStorage.getItem('syncra_email');
+    const navRight = document.querySelector('nav .flex.items-center.gap-3');
+    if (navRight && email) {
+      navRight.innerHTML = `
+        <span class="hidden sm:block text-on-surface-variant text-sm font-body truncate max-w-[160px]">${email}</span>
+        <button onclick="logout()" class="text-on-surface-variant hover:text-white transition-colors text-sm font-medium px-4 py-2 font-body">Sign out</button>
+      `;
+    }
+  })();
+
+  // ── Get project id from URL ─────────────────────────────────
+  const projectId = new URLSearchParams(window.location.search).get('id');
+  if (!projectId) {
+    window.location.replace(url('/dashboard'));
+  }
+
+  let currentApiKey = '';
+
+  function maskKey(key) {
+    return key.slice(0, 20) + '••••••••••••••••' + key.slice(-4);
+  }
+
+  // ── Load project data ───────────────────────────────────────
+  async function loadProject() {
+    try {
+      const res = await fetch(`${API}/projects`, { headers: authHeaders() });
+      if (res.status === 401) { logout(); return; }
+      if (!res.ok) throw new Error('Failed to load project');
+      const projects = await res.json();
+      const project = projects.find(p => p.id === projectId);
+      if (!project) {
+        window.location.replace(url('/dashboard'));
+        return;
+      }
+      currentApiKey = project.apiKey;
+      document.getElementById('project-title').textContent = project.name;
+      document.getElementById('project-name-breadcrumb').textContent = project.name;
+      document.getElementById('api-key-display').textContent = maskKey(project.apiKey);
+      document.getElementById('sdk-api-key').textContent = `'${project.apiKey}'`;
+
+      // Load real stats
+      await loadStats();
+    } catch (err) {
+      document.getElementById('project-title').textContent = 'Error loading project';
+    } finally {
+      hideLoader();
+    }
+  }
+
+  async function loadStats() {
+    try {
+      const [recordsRes, syncsRes] = await Promise.all([
+        fetch(`${API}/records`, { headers: authHeaders() }),
+        fetch(`${API}/sync/updates?since=1970-01-01T00:00:00.000Z`, { headers: authHeaders() }),
+      ]);
+      if (recordsRes.ok) {
+        const { records } = await recordsRes.json();
+        document.getElementById('stat-records').textContent = records.length.toLocaleString();
+      }
+      if (syncsRes.ok) {
+        const { records: synced } = await syncsRes.json();
+        document.getElementById('stat-syncs').textContent = synced.length.toLocaleString();
+      }
+    } catch (_) {
+      // silently fail — stats are non-critical
+    }
+  }
+
+  function copyApiKey() {
+    if (!currentApiKey) return;
+    navigator.clipboard.writeText(currentApiKey).catch(() => {});
+    const btn = event.currentTarget;
+    btn.innerHTML = '<span class="material-symbols-outlined text-sm">check</span> Copied!';
+    setTimeout(() => {
+      btn.innerHTML = '<span class="material-symbols-outlined text-sm">content_copy</span> Copy';
+    }, 2000);
+  }
+
+  function confirmRegenerate() {
+    if (confirm('Regenerate your API key? The current key will stop working immediately.')) {
+      alert('Key regeneration coming soon.');
+    }
+  }
+
+  loadProject();
+</script>
+<script src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@syncra/core": ["./packages/core/src/index.ts"],
+      "@syncra/config": ["./packages/config/src/index.ts"]
+    }
+  },
+  "include": [],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "./apps/api" },
+    { "path": "./apps/sdk" },
+    { "path": "./apps/demo-app" },
+    { "path": "./packages/core" },
+    { "path": "./packages/config" }
+  ]
+}

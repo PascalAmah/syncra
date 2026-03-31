@@ -1,0 +1,12 @@
+{
+  "name": "@syncra/scripts",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.20.0"
+  },
+  "dependencies": {
+    "pg": "^8.20.0"
+  }
+}

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Create Account | Syncra</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#69daff", "on-primary": "#004a5d", "primary-container": "#00cffc",
+            "on-primary-container": "#004050",
+            "tertiary": "#a1ffef", "on-tertiary": "#006459",
+            "error": "#ff716c", "error-dim": "#d7383b",
+            "surface": "#0e0e0e", "surface-container-lowest": "#000000",
+            "surface-container-low": "#131313", "surface-container": "#1a1919",
+            "surface-container-high": "#201f1f", "surface-container-highest": "#262626",
+            "on-surface": "#ffffff", "on-surface-variant": "#adaaaa",
+            "outline": "#777575", "outline-variant": "#494847",
+            "background": "#0e0e0e",
+          },
+          fontFamily: { "headline": ["Space Grotesk"], "body": ["Inter"] },
+          borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="/src/style.css"/>
+  <script src="/src/config.js"></script>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+<div id="page-loader"><span class="loader"></span></div>
+
+  <header class="px-6 md:px-8 py-5 flex items-center justify-between max-w-[1440px] mx-auto w-full">
+    <a class="font-headline text-xl font-bold tracking-tighter text-white shrink-0" href="/">Syncra</a>
+    <a href="/pages/login.html" class="text-on-surface-variant hover:text-white transition-colors text-sm font-medium font-body">
+      Sign in →
+    </a>
+  </header>
+
+  <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+  <main class="flex-1 flex items-center justify-center px-4 py-12">
+    <div class="bg-surface-container rounded-2xl border border-outline-variant/15 p-8 md:p-10 w-full max-w-md relative z-10">
+      <h1 class="font-headline text-2xl font-bold text-white mb-1">Create your account</h1>
+      <p class="text-on-surface-variant text-sm font-body mb-8">Start building offline-first apps</p>
+
+      <div id="error-msg" class="hidden mb-4 px-4 py-3 bg-error/10 border border-error/30 rounded-lg text-xs text-error font-body"></div>
+
+      <form id="signup-form" class="space-y-4 font-body">
+        <div>
+          <label class="block text-xs text-on-surface-variant mb-1.5" for="email">Email</label>
+          <input id="email" type="email" placeholder="you@example.com" autocomplete="email" required
+            class="bg-surface-container-highest border border-outline-variant rounded-lg px-4 py-3 w-full text-white text-sm focus:outline-none focus:border-primary/50 transition-colors placeholder:text-on-surface-variant/40"/>
+        </div>
+        <div>
+          <label class="block text-xs text-on-surface-variant mb-1.5" for="password">Password</label>
+          <div class="relative">
+            <input id="password" type="password" placeholder="••••••••" autocomplete="new-password" required minlength="8"
+              class="bg-surface-container-highest border border-outline-variant rounded-lg px-4 py-3 pr-11 w-full text-white text-sm focus:outline-none focus:border-primary/50 transition-colors placeholder:text-on-surface-variant/40"/>
+            <button type="button" onclick="togglePassword('password', this)" aria-label="Toggle password visibility"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-white transition-colors">
+              <span class="material-symbols-outlined text-[20px]">visibility</span>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-on-surface-variant mb-1.5" for="confirm-password">Confirm Password</label>
+          <div class="relative">
+            <input id="confirm-password" type="password" placeholder="••••••••" autocomplete="new-password" required
+              class="bg-surface-container-highest border border-outline-variant rounded-lg px-4 py-3 pr-11 w-full text-white text-sm focus:outline-none focus:border-primary/50 transition-colors placeholder:text-on-surface-variant/40"/>
+            <button type="button" onclick="togglePassword('confirm-password', this)" aria-label="Toggle confirm password visibility"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-white transition-colors">
+              <span class="material-symbols-outlined text-[20px]">visibility</span>
+            </button>
+          </div>
+        </div>
+        <button type="submit" id="submit-btn"
+          class="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-3 rounded-lg font-semibold text-sm hover:brightness-110 transition-all mt-2">
+          Create account
+        </button>
+      </form>
+
+      <div class="flex items-center gap-3 my-6">
+        <div class="flex-1 h-px bg-outline-variant/30"></div>
+        <span class="text-xs text-on-surface-variant font-body">or</span>
+        <div class="flex-1 h-px bg-outline-variant/30"></div>
+      </div>
+
+      <!-- GitHub OAuth — coming soon
+      <button onclick="handleGitHubSignup()"
+        class="w-full flex items-center justify-center gap-3 bg-surface-container-highest border border-outline-variant/40 text-on-surface px-5 py-3 rounded-lg font-semibold text-sm hover:bg-surface-container-high hover:border-outline-variant transition-all font-body">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        Continue with GitHub
+      </button>
+      -->
+
+      <p class="text-center text-xs text-on-surface-variant mt-6 font-body">
+        Already have an account?
+        <a href="/pages/login.html" class="text-primary hover:underline ml-1">Sign in</a>
+      </p>
+    </div>
+  </main>
+
+  <script>
+    const API = window.SYNCRA_API;
+
+    function url(p) {
+      const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!local) return p;
+      const map = { '/login':'/pages/login.html', '/signup':'/pages/signup.html', '/dashboard':'/pages/dashboard.html', '/onboarding':'/pages/onboarding.html' };
+      const [path, qs] = p.split('?');
+      const mapped = map[path] || path;
+      return qs ? `${mapped}?${qs}` : mapped;
+    }
+
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const errEl = document.getElementById('error-msg');
+      errEl.classList.add('hidden');
+
+      const pw = document.getElementById('password').value;
+      const cpw = document.getElementById('confirm-password').value;
+      if (pw !== cpw) {
+        errEl.textContent = 'Passwords do not match';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      btn.textContent = 'Creating account…';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`${API}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password: pw,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Registration failed');
+        localStorage.setItem('syncra_token', data.token);
+        localStorage.setItem('syncra_email', document.getElementById('email').value);
+        window.location.href = url('/onboarding');
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+        btn.textContent = 'Create account';
+        btn.disabled = false;
+      }
+    });
+
+    function togglePassword(id, btn) {
+      const input = document.getElementById(id);
+      const icon = btn.querySelector('.material-symbols-outlined');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.textContent = 'visibility_off';
+      } else {
+        input.type = 'password';
+        icon.textContent = 'visibility';
+      }
+    }
+
+    function handleGitHubSignup() {
+      window.location.href = url('/onboarding');
+    }
+  </script>
+  <script src="/src/main.js"></script>
+</body>
+</html>

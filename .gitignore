@@ -1,0 +1,15 @@
+node_modules
+dist
+build
+coverage
+.env
+.kiro
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.log
+.DS_Store
+.vscode
+.idea
+*.tsbuildinfo

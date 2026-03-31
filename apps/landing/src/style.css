@@ -1,0 +1,140 @@
+body {
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.glow-effect {
+  box-shadow: 0 0 40px 10px rgba(105, 218, 255, 0.1);
+}
+
+.mesh-gradient {
+  background:
+    radial-gradient(at 0% 0%, rgba(105, 218, 255, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(161, 255, 239, 0.05) 0px, transparent 50%);
+}
+
+@keyframes syncpulse {
+  0%, 100% { opacity: 0.4; transform: scaleX(0.6); transform-origin: left; }
+  50% { opacity: 1; transform: scaleX(1); transform-origin: left; }
+}
+
+/* ── Scroll reveal ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.reveal--left {
+  transform: translateX(-32px);
+}
+.reveal.reveal--right {
+  transform: translateX(32px);
+}
+.reveal.reveal--scale {
+  transform: scale(0.95);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* stagger children */
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.reveal-stagger.is-visible > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 0s; }
+.reveal-stagger.is-visible > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.12s; }
+.reveal-stagger.is-visible > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.24s; }
+.reveal-stagger.is-visible > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.36s; }
+.reveal-stagger.is-visible > *:nth-child(5) { opacity: 1; transform: none; transition-delay: 0.48s; }
+.reveal-stagger.is-visible > *:nth-child(6) { opacity: 1; transform: none; transition-delay: 0.60s; }
+
+/* ── Mobile nav ── */
+#mobile-menu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+#mobile-menu.open {
+  max-height: 300px;
+}
+
+/* ── Responsive tweaks ── */
+@media (max-width: 768px) {
+  /* hero headline */
+  h1.font-headline {
+    font-size: 3rem;
+    line-height: 1;
+  }
+
+  /* how-it-works: stack vertically */
+  .how-it-works-grid {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+  .how-it-works-grid .connector-line {
+    display: none;
+  }
+
+  /* metrics: tighter */
+  .metrics-divider {
+    display: none;
+  }
+
+  /* code block: smaller font */
+  pre {
+    font-size: 0.7rem;
+  }
+}
+
+/* Prevent horizontal scroll on all pages */
+html {
+  overflow-x: hidden;
+}
+
+/* ── Page transition loader ── */
+#page-loader {
+  position: fixed;
+  inset: 0;
+  background: #0e0e0e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.3s ease;
+}
+#page-loader.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loader {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: block;
+  margin: 15px auto;
+  position: relative;
+  color: #FFF;
+  left: -100px;
+  box-sizing: border-box;
+  animation: shadowRolling 2s linear infinite;
+}
+
+@keyframes shadowRolling {
+  0%   { box-shadow: 0px 0 rgba(255,255,255,0), 0px 0 rgba(255,255,255,0), 0px 0 rgba(255,255,255,0), 0px 0 rgba(255,255,255,0); }
+  12%  { box-shadow: 100px 0 white, 0px 0 rgba(255,255,255,0), 0px 0 rgba(255,255,255,0), 0px 0 rgba(255,255,255,0); }
+  25%  { box-shadow: 110px 0 white, 100px 0 white, 0px 0 rgba(255,255,255,0), 0px 0 rgba(255,255,255,0); }
+  36%  { box-shadow: 120px 0 white, 110px 0 white, 100px 0 white, 0px 0 rgba(255,255,255,0); }
+  50%  { box-shadow: 130px 0 white, 120px 0 white, 110px 0 white, 100px 0 white; }
+  62%  { box-shadow: 200px 0 rgba(255,255,255,0), 130px 0 white, 120px 0 white, 110px 0 white; }
+  75%  { box-shadow: 200px 0 rgba(255,255,255,0), 200px 0 rgba(255,255,255,0), 130px 0 white, 120px 0 white; }
+  87%  { box-shadow: 200px 0 rgba(255,255,255,0), 200px 0 rgba(255,255,255,0), 200px 0 rgba(255,255,255,0), 130px 0 white; }
+  100% { box-shadow: 200px 0 rgba(255,255,255,0), 200px 0 rgba(255,255,255,0), 200px 0 rgba(255,255,255,0), 200px 0 rgba(255,255,255,0); }
+}
