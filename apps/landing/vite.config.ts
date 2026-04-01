@@ -9,6 +9,7 @@ export default defineConfig({
         server.middlewares.use((req, _res, next) => {
           const map: Record<string, string> = {
             '/':           '/landing.html',
+            '/landing':    '/landing.html',
             '/login':      '/pages/login.html',
             '/signup':     '/pages/signup.html',
             '/dashboard':  '/pages/dashboard.html',
@@ -30,7 +31,8 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       input: {
-        index: resolve(__dirname, 'landing.html'),
+        main: resolve(__dirname, 'index.html'),
+        landing: resolve(__dirname, 'landing.html'),
         login: resolve(__dirname, 'pages/login.html'),
         signup: resolve(__dirname, 'pages/signup.html'),
         dashboard: resolve(__dirname, 'pages/dashboard.html'),
