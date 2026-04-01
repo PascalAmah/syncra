@@ -162,7 +162,7 @@
     if (!token) { window.location.replace(url('/login')); throw new Error('unauthenticated'); }
     document.addEventListener('DOMContentLoaded', () => hideLoader());
 
-    const API_BASE = window.SYNCRA_API;
+    const API_BASE = window.SYNCRA_API || 'https://syncra-bwd0.onrender.com/api';
     let currentStep = 1;
     let generatedApiKey = '';
 
