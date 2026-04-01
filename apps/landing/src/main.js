@@ -1,3 +1,9 @@
+// ── Footer year ──
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('footer-year');
+  if (el) el.textContent = new Date().getFullYear();
+});
+
 // ── Page loader ──
 function hideLoader() {
   const loader = document.getElementById('page-loader');
