@@ -8,8 +8,8 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('LoggerService', () => {
   let logger: LoggerService;
-  let stdoutSpy: ReturnType<typeof vi.spyOn<typeof process.stdout, 'write'>>;
-  let stderrSpy: ReturnType<typeof vi.spyOn<typeof process.stderr, 'write'>>;
+  let stdoutSpy: any;
+  let stderrSpy: any;
 
   beforeEach(() => {
     logger = new LoggerService();
@@ -93,7 +93,7 @@ describe('LoggerService', () => {
 describe('HttpLoggingMiddleware', () => {
   let logger: LoggerService;
   let middleware: HttpLoggingMiddleware;
-  let logRequestSpy: ReturnType<typeof vi.spyOn<LoggerService, 'logRequest'>>;
+  let logRequestSpy: any;
 
   beforeEach(() => {
     logger = new LoggerService();
@@ -154,7 +154,7 @@ describe('HttpLoggingMiddleware', () => {
 describe('AllExceptionsFilter', () => {
   let logger: LoggerService;
   let filter: AllExceptionsFilter;
-  let errorSpy: ReturnType<typeof vi.spyOn<LoggerService, 'error'>>;
+  let errorSpy: any;
 
   beforeEach(() => {
     logger = new LoggerService();

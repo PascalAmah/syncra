@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { SyncraSDK } from '@syncra/sdk';
+import { SyncraSDK } from 'syncra-sdk';
 
 const SdkContext = createContext<SyncraSDK | null>(null);
 
@@ -16,10 +16,12 @@ export function SdkProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const apiKey = localStorage.getItem('syncra_api_key') ?? undefined;
     const userId = localStorage.getItem('syncra_user_id') ?? undefined;
+    const bearerToken = localStorage.getItem('syncra_token') ?? undefined;
     const sdk = new SyncraSDK({
       baseUrl: 'http://localhost:3000/api',
       apiKey,
       userId,
+      bearerToken,
       syncInterval: 30_000,
     });
 
@@ -45,3 +47,4 @@ export function SdkProvider({ children }: { children: React.ReactNode }) {
     </SdkContext.Provider>
   );
 }
+

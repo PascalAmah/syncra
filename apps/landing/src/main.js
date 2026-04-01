@@ -1,3 +1,9 @@
+// ── Footer year ──
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('footer-year');
+  if (el) el.textContent = new Date().getFullYear();
+});
+
 // ── Page loader ──
 function hideLoader() {
   const loader = document.getElementById('page-loader');
@@ -14,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Copy install command ──
 function copyInstall() {
-  navigator.clipboard.writeText('npm install @syncra/sdk').then(() => {
+  navigator.clipboard.writeText('npm install syncra-sdk').then(() => {
     const toast = document.getElementById('copy-toast');
     if (toast) {
       toast.classList.remove('hidden');

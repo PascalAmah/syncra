@@ -22,6 +22,7 @@
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "outDir": "./dist",
     "paths": {
       "@syncra/core": ["../../packages/core/dist/index.d.ts"],
       "@syncra/config": ["../../packages/config/dist/index.d.ts"]

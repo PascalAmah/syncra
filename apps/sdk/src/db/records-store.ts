@@ -1,4 +1,4 @@
-import { SyncRecord } from '@syncra/core';
+import { SyncRecord } from '../types';
 import { getDb } from './database';
 import { STORE_NAMES } from './schema';
 

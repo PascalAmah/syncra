@@ -87,7 +87,7 @@ describe('Feature: syncra-offline-sync-engine, Property 1: Email Uniqueness Cons
         // Simulate PostgreSQL unique violation (code 23505)
         db.query.mockRejectedValue({ code: '23505' });
 
-        const service = new AuthService(db, makeJwtService(), makeConfigService());
+        const service = new AuthService(db, makeJwtService());
         try {
           await service.register({ email, password });
           return false; // Should have thrown
@@ -179,7 +179,7 @@ describe('Feature: syncra-offline-sync-engine, Property 4: User Registration Cre
         db.query.mockResolvedValue({ rows: [{ id: userId, email }] });
         vi.mocked(bcrypt.hash).mockResolvedValue('hashed' as never);
 
-        const service = new AuthService(db, makeJwtService(), makeConfigService());
+        const service = new AuthService(db, makeJwtService());
         const result = await service.register({ email, password });
         return result.id === userId && result.email === email;
       }),
@@ -225,7 +225,7 @@ describe('Feature: syncra-offline-sync-engine, Property 6: Login Returns Valid J
         const jwtService = makeJwtService();
         jwtService.sign.mockReturnValue('signed.jwt.token');
 
-        const service = new AuthService(db, jwtService, makeConfigService());
+        const service = new AuthService(db, jwtService);
         const result = await service.login({ email, password });
         return typeof result.token === 'string' && result.token.length > 0;
       }),
@@ -250,7 +250,7 @@ describe('Feature: syncra-offline-sync-engine, Property 7: Invalid Credentials R
         // Mock bcrypt.compare to return false (wrong password)
         vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
 
-        const service = new AuthService(db, makeJwtService(), makeConfigService());
+        const service = new AuthService(db, makeJwtService());
         try {
           await service.login({ email, password });
           return false;
@@ -732,3 +732,4 @@ describe('Feature: syncra-offline-sync-engine, Property 34: Health Endpoint Stat
     );
   });
 });
+

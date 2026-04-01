@@ -50,7 +50,7 @@ function makeSdk() {
     configurable: true,
   });
 
-  return new SyncraSDK({ baseUrl: 'http://localhost:3000', token: 'test-token', syncInterval: 0, networkStateManagerOptions: { checkInterval: 0 } });
+  return new SyncraSDK({ baseUrl: 'http://localhost:3000', apiKey: 'test-token', syncInterval: 0, networkStateManagerOptions: { checkInterval: 0 } });
 }
 
 function mockFetch(responses: Array<{ ok: boolean; json: () => Promise<unknown> }>) {
@@ -1351,7 +1351,7 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
 
     return new SyncraSDK({
       baseUrl: 'http://localhost:3000',
-      token: 'test-token',
+      apiKey: 'test-token',
       syncInterval,
       networkStateManagerOptions: { checkInterval: 0 },
     });

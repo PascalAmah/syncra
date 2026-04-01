@@ -1,4 +1,4 @@
-import { QueuedOperation } from '@syncra/core';
+import { QueuedOperation } from '../types';
 import { getDb } from './database';
 import { STORE_NAMES } from './schema';
 
@@ -7,7 +7,7 @@ export async function getPendingOperations(): Promise<QueuedOperation[]> {
   const index = db.transaction(STORE_NAMES.OFFLINE_QUEUE).store.index('status');
   const all = await index.getAll('pending');
   const now = Date.now();
-  // Requirement 9.1.3 — exclude operations whose retry delay has not yet elapsed
+  // exclude operations whose retry delay has not yet elapsed
   return all.filter((op) => !op.nextRetryAt || new Date(op.nextRetryAt).getTime() <= now);
 }
 
