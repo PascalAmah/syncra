@@ -37,18 +37,12 @@ export class SyncService {
     const rejected: ConflictResponse[] = [];
 
     for (const op of operations) {
-      // Task 6.2: Check idempotency key before processing
-      // Requirement 6.2: If (user_id, idempotency_key) exists with status='applied',
-      // return the cached result without re-applying the operation.
       const cached = await this.checkIdempotency(userId, op.idempotencyKey);
       if (cached) {
         applied.push(cached);
         continue;
       }
 
-      // Task 6.4: Version conflict detection for update/delete operations
-      // Requirement 6.3: Compare operation.version against versions table.
-      // If mismatch, reject with conflict details.
       if (op.type === 'update' || op.type === 'delete') {
         const conflict = await this.checkVersionConflict(userId, op);
         if (conflict) {
@@ -57,7 +51,6 @@ export class SyncService {
         }
       }
 
-      // Task 6.6: Atomically apply the operation in a database transaction
       const result = await this.applyOperation(userId, op);
       applied.push(result);
     }
@@ -75,7 +68,6 @@ export class SyncService {
    *   5. INSERT sync_operations row with status='applied'
    * Rolls back the entire transaction on any error.
    *
-   * Requirement 6.4: Atomic operation application.
    */
   async applyOperation(
     userId: string,
@@ -187,7 +179,6 @@ export class SyncService {
 
   /**
    * Returns all records for the given user updated after the `since` timestamp.
-   * Requirement 7.1: Delta Pull.
    */
   async getSyncUpdates(
     userId: string,
@@ -220,7 +211,7 @@ export class SyncService {
 
     return {
       records: result.rows,
-      deletedRecordIds: deletedResult.rows.map((r) => r.record_id),
+      deletedRecordIds: deletedResult.rows.map((r: { record_id: string }) => r.record_id),
     };
   }
 
@@ -229,7 +220,6 @@ export class SyncService {
    * For update/delete operations only. Returns a ConflictResponse if there
    * is a version mismatch, or null if versions match (or record not found).
    *
-   * Requirement 6.3: Version conflict detection before mutation.
    */
   async checkVersionConflict(
     userId: string,
@@ -295,7 +285,6 @@ export class SyncService {
    * Checks if an operation with the given idempotency key has already been applied
    * for this user. Returns the cached OperationResult if found, or null otherwise.
    *
-   * Requirement 6.2.2: Idempotency checks happen before any mutation to the records table.
    */
   async checkIdempotency(
     userId: string,
