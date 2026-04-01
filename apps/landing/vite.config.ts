@@ -30,8 +30,7 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        landing: resolve(__dirname, 'landing.html'),
+        index: resolve(__dirname, 'landing.html'),
         login: resolve(__dirname, 'pages/login.html'),
         signup: resolve(__dirname, 'pages/signup.html'),
         dashboard: resolve(__dirname, 'pages/dashboard.html'),
