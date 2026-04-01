@@ -32,12 +32,12 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/src/style.css"/>
+  <link rel="stylesheet" href="../src/style.css"/>
   <script>
     function url(p) {
       const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
       if (!local) return p;
-      const map = { '/login':'/pages/login.html', '/signup':'/pages/signup.html', '/dashboard':'/pages/dashboard.html', '/onboarding':'/pages/onboarding.html', '/project':'/pages/project.html' };
+      const map = { '/login':'/login', '/signup':'/signup', '/dashboard':'/dashboard', '/onboarding':'/onboarding', '/project':'/project' };
       const [path, qs] = p.split('?');
       const mapped = map[path] || path;
       return qs ? `${mapped}?${qs}` : mapped;
@@ -55,7 +55,7 @@
       } catch(e) { localStorage.removeItem('syncra_token'); window.location.replace(url('/login')); }
     })();
   </script>
-  <script src="/src/config.js"></script>
+  <script src="../src/config.js"></script>
 </head>
 <body class="bg-surface text-on-surface">
 <div id="page-loader"><span class="loader"></span></div>
@@ -70,34 +70,34 @@
 
 <div class="flex min-h-screen pt-16">
   <aside class="hidden md:flex flex-col w-56 bg-surface-container-low border-r border-outline-variant/15 fixed top-16 bottom-0 left-0 px-4 py-6 gap-1">
-    <a href="/pages/dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
+    <a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
       <span class="material-symbols-outlined text-base">folder_open</span>Projects
     </a>
-    <a href="/pages/api-keys.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
+    <a href="/api-keys" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
       <span class="material-symbols-outlined text-base">key</span>API Keys
     </a>
-    <a href="/pages/docs.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
+    <a href="/docs" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
       <span class="material-symbols-outlined text-base">menu_book</span>Docs
     </a>
-    <a href="/pages/settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors bg-primary/10 text-primary font-body">
+    <a href="/settings" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors bg-primary/10 text-primary font-body">
       <span class="material-symbols-outlined text-base">settings</span>Settings
     </a>
   </aside>
 
   <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container border-t border-outline-variant/15 flex z-40">
-    <a href="/pages/dashboard.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
+    <a href="/dashboard" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
       <span class="material-symbols-outlined text-xl">folder_open</span>
       <span class="text-[10px] font-medium">Projects</span>
     </a>
-    <a href="/pages/api-keys.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
+    <a href="/api-keys" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
       <span class="material-symbols-outlined text-xl">key</span>
       <span class="text-[10px] font-medium">API Keys</span>
     </a>
-    <a href="/pages/docs.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
+    <a href="/docs" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
       <span class="material-symbols-outlined text-xl">menu_book</span>
       <span class="text-[10px] font-medium">Docs</span>
     </a>
-    <a href="/pages/settings.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-primary font-body">
+    <a href="/settings" class="flex-1 flex flex-col items-center gap-1 py-3 text-primary font-body">
       <span class="material-symbols-outlined text-xl">settings</span>
       <span class="text-[10px] font-medium">Settings</span>
     </a>
@@ -124,7 +124,7 @@
   function url(p) {
     const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     if (!local) return p;
-    const map = { '/login':'/pages/login.html', '/signup':'/pages/signup.html', '/dashboard':'/pages/dashboard.html', '/onboarding':'/pages/onboarding.html', '/project':'/pages/project.html' };
+    const map = { '/login':'/login', '/signup':'/signup', '/dashboard':'/dashboard', '/onboarding':'/onboarding', '/project':'/project' };
     const [path, qs] = p.split('?');
     const mapped = map[path] || path;
     return qs ? `${mapped}?${qs}` : mapped;
@@ -145,6 +145,6 @@
     }
   })();
 </script>
-<script src="/src/main.js"></script>
+<script type="module" src="../src/main.js"></script>
 </body>
 </html>

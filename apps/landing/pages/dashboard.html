@@ -32,13 +32,13 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/src/style.css"/>
+  <link rel="stylesheet" href="../src/style.css"/>
   <script>
     // Runs in <head> — redirect before body renders if no valid token
     function url(p) {
       const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
       if (!local) return p;
-      const map = { '/login':'/pages/login.html', '/signup':'/pages/signup.html', '/dashboard':'/pages/dashboard.html', '/onboarding':'/pages/onboarding.html', '/project':'/pages/project.html' };
+      const map = { '/login':'/login', '/signup':'/signup', '/dashboard':'/dashboard', '/onboarding':'/onboarding', '/project':'/project' };
       const [path, qs] = p.split('?');
       const mapped = map[path] || path;
       return qs ? `${mapped}?${qs}` : mapped;
@@ -62,7 +62,7 @@
       }
     })();
   </script>
-  <script src="/src/config.js"></script>
+  <script src="../src/config.js"></script>
 </head>
 <body class="bg-surface text-on-surface" data-protected="true">
 <div id="page-loader"><span class="loader"></span></div>
@@ -72,13 +72,13 @@
       <a class="font-headline text-xl font-bold tracking-tighter text-white shrink-0" href="/">Syncra</a>
       <div class="hidden md:flex gap-8 items-center">
         <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/#features">Features</a>
-        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/pages/docs.html">Docs</a>
-        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/pages/playground.html">Playground</a>
+        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/docs">Docs</a>
+        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/playground">Playground</a>
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <a href="/pages/login.html" class="hidden sm:block text-on-surface-variant hover:text-white transition-colors text-sm font-medium px-4 py-2">Sign in</a>
-      <a href="/pages/signup.html" class="bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-sm hover:brightness-110 transition-all">
+      <a href="/login" class="hidden sm:block text-on-surface-variant hover:text-white transition-colors text-sm font-medium px-4 py-2">Sign in</a>
+      <a href="/signup" class="bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-sm hover:brightness-110 transition-all">
         Get Started
       </a>
       <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-on-surface-variant hover:text-white transition-colors" aria-label="Toggle menu">
@@ -89,10 +89,10 @@
   <div id="mobile-menu" class="md:hidden bg-surface-container border-t border-outline-variant/15 px-6 font-body text-sm">
     <div class="flex flex-col gap-1 py-4">
       <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/#features" onclick="toggleMobileMenu()">Features</a>
-      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/pages/docs.html" onclick="toggleMobileMenu()">Docs</a>
-      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/pages/playground.html" onclick="toggleMobileMenu()">Playground</a>
-      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/pages/login.html" onclick="toggleMobileMenu()">Sign in</a>
-      <a href="/pages/signup.html" class="mt-2 bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-left w-fit">Get Started</a>
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/docs" onclick="toggleMobileMenu()">Docs</a>
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/playground" onclick="toggleMobileMenu()">Playground</a>
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/login" onclick="toggleMobileMenu()">Sign in</a>
+      <a href="/signup" class="mt-2 bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-left w-fit">Get Started</a>
     </div>
   </div>
 </nav>
@@ -101,19 +101,19 @@
 
   <!-- Sidebar: desktop only -->
   <aside class="hidden md:flex flex-col w-56 bg-surface-container-low border-r border-outline-variant/15 fixed top-16 bottom-0 left-0 px-4 py-6 gap-1">
-    <a href="/pages/dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors bg-primary/10 text-primary font-body">
+    <a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors bg-primary/10 text-primary font-body">
       <span class="material-symbols-outlined text-base">folder_open</span>
       Projects
     </a>
-    <a href="/pages/api-keys.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
+    <a href="/api-keys" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
       <span class="material-symbols-outlined text-base">key</span>
       API Keys
     </a>
-    <a href="/pages/docs.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
+    <a href="/docs" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
       <span class="material-symbols-outlined text-base">menu_book</span>
       Docs
     </a>
-    <a href="/pages/settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
+    <a href="/settings" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface-variant hover:bg-surface-container hover:text-white font-body">
       <span class="material-symbols-outlined text-base">settings</span>
       Settings
     </a>
@@ -121,19 +121,19 @@
 
   <!-- Mobile bottom tab bar -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container border-t border-outline-variant/15 flex z-40">
-    <a href="/pages/dashboard.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-primary font-body">
+    <a href="/dashboard" class="flex-1 flex flex-col items-center gap-1 py-3 text-primary font-body">
       <span class="material-symbols-outlined text-xl">folder_open</span>
       <span class="text-[10px] font-medium">Projects</span>
     </a>
-    <a href="/pages/api-keys.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
+    <a href="/api-keys" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
       <span class="material-symbols-outlined text-xl">key</span>
       <span class="text-[10px] font-medium">API Keys</span>
     </a>
-    <a href="/pages/docs.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
+    <a href="/docs" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
       <span class="material-symbols-outlined text-xl">menu_book</span>
       <span class="text-[10px] font-medium">Docs</span>
     </a>
-    <a href="/pages/settings.html" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
+    <a href="/settings" class="flex-1 flex flex-col items-center gap-1 py-3 text-on-surface-variant font-body">
       <span class="material-symbols-outlined text-xl">settings</span>
       <span class="text-[10px] font-medium">Settings</span>
     </a>
@@ -260,8 +260,8 @@
       <h6 class="text-white font-bold mb-4">Product</h6>
       <ul class="space-y-3">
         <li><a class="hover:text-primary transition-colors" href="/#features">Features</a></li>
-        <li><a class="hover:text-primary transition-colors" href="/pages/docs.html">Docs</a></li>
-        <li><a class="hover:text-primary transition-colors" href="/pages/playground.html">Playground</a></li>
+        <li><a class="hover:text-primary transition-colors" href="/docs">Docs</a></li>
+        <li><a class="hover:text-primary transition-colors" href="/playground">Playground</a></li>
       </ul>
     </div>
     <div>
@@ -283,12 +283,12 @@
 </footer>
 
 <script>
-  const API = window.SYNCRA_API;
+  const API = window.SYNCRA_API || 'https://syncra-bwd0.onrender.com/api';
 
     function url(p) {
       const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
       if (!local) return p;
-      const map = { '/login':'/pages/login.html', '/signup':'/pages/signup.html', '/dashboard':'/pages/dashboard.html', '/onboarding':'/pages/onboarding.html', '/project':'/pages/project.html' };
+      const map = { '/login':'/login', '/signup':'/signup', '/dashboard':'/dashboard', '/onboarding':'/onboarding', '/project':'/project' };
       const [path, qs] = p.split('?');
       const mapped = map[path] || path;
       return qs ? `${mapped}?${qs}` : mapped;
@@ -407,7 +407,7 @@
       closeModal();
       document.getElementById('project-name').value = '';
       const dest = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-        ? '/pages/project.html?id=' + projectId
+        ? '/project?id=' + projectId
         : '/project?id=' + projectId;
       window.location.href = dest;
     } catch (err) {
@@ -419,7 +419,7 @@
 
   function openProject(id) {
     const base = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-      ? '/pages/project.html' : '/project';
+      ? '/project' : '/project';
     window.location.href = base + '?id=' + id;
   }
 
@@ -495,6 +495,6 @@
 
   loadProjects();
 </script>
-<script src="/src/main.js"></script>
+<script type="module" src="../src/main.js"></script>
 </body>
 </html>

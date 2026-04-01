@@ -32,15 +32,15 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/src/style.css"/>
-  <script src="/src/config.js"></script>
+  <link rel="stylesheet" href="../src/style.css"/>
+  <script src="../src/config.js"></script>
 </head>
 <body class="bg-surface text-on-surface min-h-screen flex flex-col">
 <div id="page-loader"><span class="loader"></span></div>
 
   <header class="px-6 md:px-8 py-5 flex items-center justify-between max-w-[1440px] mx-auto w-full">
     <a class="font-headline text-xl font-bold tracking-tighter text-white shrink-0" href="/">Syncra</a>
-    <a href="/pages/login.html" class="text-on-surface-variant hover:text-white transition-colors text-sm font-medium font-body">
+    <a href="/login" class="text-on-surface-variant hover:text-white transition-colors text-sm font-medium font-body">
       Sign in →
     </a>
   </header>
@@ -106,18 +106,18 @@
 
       <p class="text-center text-xs text-on-surface-variant mt-6 font-body">
         Already have an account?
-        <a href="/pages/login.html" class="text-primary hover:underline ml-1">Sign in</a>
+        <a href="/login" class="text-primary hover:underline ml-1">Sign in</a>
       </p>
     </div>
   </main>
 
   <script>
-    const API = window.SYNCRA_API;
+    const API = window.SYNCRA_API || 'https://syncra-bwd0.onrender.com/api';
 
     function url(p) {
       const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
       if (!local) return p;
-      const map = { '/login':'/pages/login.html', '/signup':'/pages/signup.html', '/dashboard':'/pages/dashboard.html', '/onboarding':'/pages/onboarding.html' };
+      const map = { '/login':'/login', '/signup':'/signup', '/dashboard':'/dashboard', '/onboarding':'/onboarding' };
       const [path, qs] = p.split('?');
       const mapped = map[path] || path;
       return qs ? `${mapped}?${qs}` : mapped;
@@ -178,6 +178,6 @@
       window.location.href = url('/onboarding');
     }
   </script>
-  <script src="/src/main.js"></script>
+  <script type="module" src="../src/main.js"></script>
 </body>
 </html>

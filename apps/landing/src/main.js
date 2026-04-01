@@ -37,23 +37,9 @@ function toggleMobileMenu() {
 }
 window.toggleMobileMenu = toggleMobileMenu;
 
-// ── URL helper: clean paths on Vercel, file paths locally ──
+// ── URL helper: always use clean paths (Vite dev server + Vercel both handle rewrites) ──
 function url(cleanPath) {
-  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  if (!isLocal) return cleanPath; // Vercel handles clean URLs
-  // Map clean paths to actual file paths for local dev
-  const map = {
-    '/login':      '/pages/login.html',
-    '/signup':     '/pages/signup.html',
-    '/dashboard':  '/pages/dashboard.html',
-    '/onboarding': '/pages/onboarding.html',
-    '/docs':       '/pages/docs.html',
-    '/playground': '/pages/playground.html',
-  };
-  // Handle paths with query strings like /project?id=xxx
-  const [path, qs] = cleanPath.split('?');
-  const mapped = map[path] || (path + '.html').replace('//', '/');
-  return qs ? `${mapped}?${qs}` : mapped;
+  return cleanPath;
 }
 window.url = url;
 

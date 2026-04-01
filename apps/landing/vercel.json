@@ -1,12 +1,15 @@
 {
   "rewrites": [
+    { "source": "/landing",    "destination": "/landing.html" },
     { "source": "/login",      "destination": "/pages/login.html" },
     { "source": "/signup",     "destination": "/pages/signup.html" },
     { "source": "/dashboard",  "destination": "/pages/dashboard.html" },
     { "source": "/project",    "destination": "/pages/project.html" },
     { "source": "/docs",       "destination": "/pages/docs.html" },
     { "source": "/onboarding", "destination": "/pages/onboarding.html" },
-    { "source": "/playground", "destination": "/pages/playground.html" }
+    { "source": "/playground", "destination": "/pages/playground.html" },
+    { "source": "/api-keys",   "destination": "/pages/api-keys.html" },
+    { "source": "/settings",   "destination": "/pages/settings.html" }
   ],
   "buildCommand": "vite build",
   "outputDirectory": "dist",
