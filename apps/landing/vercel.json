@@ -7,5 +7,9 @@
     { "source": "/docs",       "destination": "/pages/docs.html" },
     { "source": "/onboarding", "destination": "/pages/onboarding.html" },
     { "source": "/playground", "destination": "/pages/playground.html" }
-  ]
+  ],
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "installCommand": "pnpm install",
+  "framework": "vite"
 }
