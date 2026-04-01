@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { LocalConflict } from '@syncra/sdk';
+import type { LocalConflict } from 'syncra-sdk';
 import { useSdk } from './sdk-context';
 
 export function ConflictDialog() {
@@ -97,3 +97,4 @@ export function ConflictDialog() {
     </div>
   );
 }
+

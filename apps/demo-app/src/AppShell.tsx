@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { LocalRecord } from '@syncra/sdk';
+import type { LocalRecord } from 'syncra-sdk';
 import { useSdk } from './sdk-context';
 import { SyncStatus } from './SyncStatus';
 import { ConflictDialog } from './ConflictDialog';
@@ -52,6 +52,7 @@ export function AppShell({ userEmail, onLogout }: AppShellProps) {
       await sdk.createRecord(data);
       setNewData('');
       refresh();
+      sdk.sync().catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create record');
     }
@@ -71,6 +72,7 @@ export function AppShell({ userEmail, onLogout }: AppShellProps) {
       setEditId(null);
       setEditData('');
       refresh();
+      sdk.sync().catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update record');
     }
@@ -81,6 +83,7 @@ export function AppShell({ userEmail, onLogout }: AppShellProps) {
     try {
       await sdk.deleteRecord(id);
       refresh();
+      sdk.sync().catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete record');
     }
@@ -222,3 +225,4 @@ export function AppShell({ userEmail, onLogout }: AppShellProps) {
     </div>
   );
 }
+

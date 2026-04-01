@@ -65,7 +65,7 @@ function makeOfflineSdk() {
   setupBrowserEnv(false);
   return new SyncraSDK({
     baseUrl: 'http://localhost:3000',
-    token: 'test-token',
+    apiKey: 'test-token',
     syncInterval: 0,
     networkStateManagerOptions: { checkInterval: 0 },
   });
@@ -75,7 +75,7 @@ function makeOnlineSdk() {
   setupBrowserEnv(true);
   return new SyncraSDK({
     baseUrl: 'http://localhost:3000',
-    token: 'test-token',
+    apiKey: 'test-token',
     syncInterval: 0,
     networkStateManagerOptions: { checkInterval: 0 },
   });

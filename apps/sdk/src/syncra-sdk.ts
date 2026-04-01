@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ResolvedRecord, SyncPullResponse, SyncPushResponse } from '@syncra/core';
+import { ResolvedRecord, SyncPullResponse, SyncPushResponse, QueuedOperation } from './types';
 import { getRecord, upsertRecord, deleteRecord as deleteRecordFromStore } from './db/records-store';
 import { enqueueOperation, getPendingOperations, markOperationApplied, removeOperation, updateOperation } from './db/queue-store';
 import { getMetadata, setMetadata } from './db/metadata-store';
@@ -70,11 +70,14 @@ export class SyncraSDK {
   private apiKey: string | null = null;
   /** Optional user id sent as x-user-id header */
   private userId: string | null = null;
+  /** Optional JWT bearer token for user-authenticated requests */
+  private bearerToken: string | null = null;
 
-  constructor(options: { baseUrl?: string; apiKey?: string; userId?: string; syncInterval?: number; networkStateManagerOptions?: NetworkStateManagerOptions } = {}) {
+  constructor(options: { baseUrl?: string; apiKey?: string; userId?: string; bearerToken?: string; syncInterval?: number; networkStateManagerOptions?: NetworkStateManagerOptions } = {}) {
     this.baseUrl = options.baseUrl ?? '';
     this.apiKey = options.apiKey ?? null;
     this.userId = options.userId ?? null;
+    this.bearerToken = options.bearerToken ?? null;
     this.syncInterval = options.syncInterval ?? 30000;
 
     this.networkStateManager = new NetworkStateManager(options.networkStateManagerOptions);
@@ -105,6 +108,11 @@ export class SyncraSDK {
   /** Update the user id */
   setUserId(userId: string): void {
     this.userId = userId;
+  }
+
+  /** Update the JWT bearer token (e.g. after login) */
+  setBearerToken(token: string): void {
+    this.bearerToken = token;
   }
 
   // ---------------------------------------------------------------------------
@@ -359,7 +367,6 @@ export class SyncraSDK {
   }
 
   async sync(): Promise<SyncResult> {
-    // Requirement 6.1.1 — only sync when online
     if (!this.isOnline) {
       console.log('Cannot sync: offline');
       return { applied: 0, rejected: 0 };
@@ -367,7 +374,6 @@ export class SyncraSDK {
 
     const pendingOperations = await getPendingOperations();
 
-    // Requirement 6.1.4 — no-op push when queue is empty, but still pull delta
     if (pendingOperations.length === 0) {
       this.emit('sync-start');
       await this.pullDelta();
@@ -379,7 +385,6 @@ export class SyncraSDK {
     this.emit('sync-start');
 
     try {
-      // Requirement 6.1.2 — build the request body
       const body = {
         operations: pendingOperations.map((op) => ({
           id: op.id,
@@ -394,6 +399,8 @@ export class SyncraSDK {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (this.apiKey) {
         headers['x-api-key'] = this.apiKey;
+      } else if (this.bearerToken) {
+        headers['Authorization'] = `Bearer ${this.bearerToken}`;
       }
       if (this.userId) {
         headers['x-user-id'] = this.userId;
@@ -406,14 +413,12 @@ export class SyncraSDK {
       });
 
       if (!response.ok) {
-        // Requirement 9.1.1 — 5xx responses trigger retry logic
         if (response.status >= 500) {
           await this.applyRetryLogic(pendingOperations);
           const syncResult: SyncResult = { applied: 0, rejected: 0 };
           this.emit('sync-complete', syncResult);
           return syncResult;
         }
-        // 4xx and other non-retriable errors — throw without retry
         const err = new Error(`Sync request failed with status ${response.status}`);
         (err as any).nonRetriable = true;
         throw err;
@@ -421,7 +426,6 @@ export class SyncraSDK {
 
       let result: SyncPushResponse;
 
-      // Requirement 9.3.1 — handle 202 async response by polling job status
       if (response.status === 202) {
         const { jobId } = await response.json();
         result = await this.pollJobStatus(jobId);
@@ -429,7 +433,6 @@ export class SyncraSDK {
         result = await response.json();
       }
 
-      // Requirement 6.1.3 — mark applied operations
       for (const applied of result.applied) {
         await markOperationApplied(applied.operationId);
         this.updateQueueEntryStatus(applied.operationId, 'applied');
@@ -448,7 +451,6 @@ export class SyncraSDK {
         }
       }
 
-      // Handle rejected operations (conflicts) — Requirements 8.1, 8.2, 8.3
       for (const rejected of result.rejected) {
         const conflict: LocalConflict = {
           recordId: rejected.recordId,
@@ -457,11 +459,9 @@ export class SyncraSDK {
           serverData: rejected.serverData as Record<string, unknown>,
         };
 
-        // Requirement 8.1.2 — emit conflict event
         this.emit('conflict', conflict);
 
         if (this.conflictHandler) {
-          // Requirement 8.3 — invoke custom handler and re-enqueue
           const resolved = this.conflictHandler(conflict);
           const existing = await getRecord(rejected.recordId);
           if (existing) {
@@ -487,7 +487,6 @@ export class SyncraSDK {
             createdAt: new Date(),
           });
         } else {
-          // Requirement 8.2 — last-write-wins: overwrite local with server data
           const existing = await getRecord(rejected.recordId);
           if (existing) {
             await upsertRecord({
@@ -503,7 +502,6 @@ export class SyncraSDK {
         }
       }
 
-      // Pull delta updates after successful push (Requirement 7.2)
       await this.pullDelta();
 
       const syncResult: SyncResult = {
@@ -514,7 +512,6 @@ export class SyncraSDK {
       this.emit('sync-complete', syncResult);
       return syncResult;
     } catch (error) {
-      // Requirement 9.1.1 — network errors trigger retry logic (but not non-retriable errors like 4xx)
       if (!(error instanceof Error && (error as any).nonRetriable)) {
         await this.applyRetryLogic(pendingOperations);
       }
@@ -525,7 +522,7 @@ export class SyncraSDK {
 
   /**
    * Polls GET /sync/job/:jobId until the job is completed or failed.
-   * Uses exponential backoff delay between polls (Requirement 9.3.1).
+   * Uses exponential backoff delay between polls.
    * When completed, returns the SyncPushResponse result.
    * When failed, emits sync-failed and throws.
    */
@@ -535,6 +532,8 @@ export class SyncraSDK {
     const headers: Record<string, string> = {};
     if (this.apiKey) {
       headers['x-api-key'] = this.apiKey;
+    } else if (this.bearerToken) {
+      headers['Authorization'] = `Bearer ${this.bearerToken}`;
     }
     if (this.userId) {
       headers['x-user-id'] = this.userId;
@@ -543,7 +542,6 @@ export class SyncraSDK {
     let pollAttempt = 0;
 
     while (true) {
-      // Exponential backoff delay before each poll (Requirement 9.3.1)
       const delay = calculateRetryDelay(pollAttempt);
       await new Promise((resolve) => setTimeout(resolve, delay));
 
@@ -557,12 +555,10 @@ export class SyncraSDK {
         await pollResponse.json();
 
       if (jobStatus.status === 'completed' && jobStatus.result) {
-        // Requirement 9.3.2 — job applied: return result for normal processing
         return jobStatus.result;
       }
 
       if (jobStatus.status === 'failed') {
-        // Requirement 9.3.3 — job rejected: emit sync-failed and throw
         const error = new Error(jobStatus.failedReason ?? 'Sync job failed');
         this.emit('sync-failed', { error });
         (error as any).nonRetriable = true;
@@ -578,22 +574,19 @@ export class SyncraSDK {
    * Applies retry logic to a batch of operations after a sync failure.
    * Increments retries, calculates backoff delay, sets nextRetryAt.
    * If retries >= maxRetries, marks operation as failed and emits sync-failed.
-   * Requirements 9.1.1, 9.1.2, 9.1.3
    */
-  private async applyRetryLogic(operations: import('@syncra/core').QueuedOperation[]): Promise<void> {
-    const failedOps: import('@syncra/core').QueuedOperation[] = [];
+  private async applyRetryLogic(operations: QueuedOperation[]): Promise<void> {
+    const failedOps: QueuedOperation[] = [];
 
     for (const op of operations) {
       const newRetries = op.retries + 1;
       const maxRetries = op.maxRetries ?? MAX_RETRIES;
 
       if (newRetries >= maxRetries) {
-        // Requirement 9.1.2 — max retries reached: mark as failed
         await updateOperation(op.id, { status: 'failed', retries: newRetries });
         this.updateQueueEntryStatus(op.id, 'failed');
         failedOps.push({ ...op, retries: newRetries, status: 'failed' });
       } else {
-        // Requirement 9.1.1 — schedule retry with exponential backoff
         const nextRetryAt = calculateNextRetryAt(newRetries);
         await updateOperation(op.id, { retries: newRetries, nextRetryAt });
         const entry = this.queue.get(op.id);
@@ -603,7 +596,6 @@ export class SyncraSDK {
       }
     }
 
-    // Requirement 9.1.2 — emit sync-failed for operations that exhausted retries
     if (failedOps.length > 0) {
       this.emit('sync-failed', {
         error: new Error(`${failedOps.length} operation(s) failed after max retries`),
@@ -614,7 +606,7 @@ export class SyncraSDK {
   /**
    * Pulls delta updates from the server since the last sync timestamp,
    * upserts returned records into the local database, removes deleted records,
-   * and updates the last sync timestamp. (Requirements 7.2.1, 7.2.2, 7.2.3)
+   * and updates the last sync timestamp.
    */
   private async pullDelta(): Promise<void> {
     const lastSyncTime = await getMetadata(LAST_SYNC_TIME_KEY);
@@ -623,6 +615,8 @@ export class SyncraSDK {
     const headers: Record<string, string> = {};
     if (this.apiKey) {
       headers['x-api-key'] = this.apiKey;
+    } else if (this.bearerToken) {
+      headers['Authorization'] = `Bearer ${this.bearerToken}`;
     }
     if (this.userId) {
       headers['x-user-id'] = this.userId;
@@ -639,7 +633,7 @@ export class SyncraSDK {
 
     const delta: SyncPullResponse = await response.json();
 
-    // Upsert each returned record into local database (Requirement 7.2.2)
+    // Upsert each returned record into local database
     for (const record of delta.records) {
       await upsertRecord(record);
       // Also update in-memory map so getRecords() reflects the latest state
@@ -658,7 +652,7 @@ export class SyncraSDK {
       this.records.delete(deletedId);
     }
 
-    // Update last sync timestamp (Requirement 7.2)
+    // Update last sync timestamp
     await setMetadata(LAST_SYNC_TIME_KEY, new Date().toISOString());
   }
 

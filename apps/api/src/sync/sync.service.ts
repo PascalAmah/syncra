@@ -113,17 +113,27 @@ export class SyncService {
         );
 
         if (updateRecord.rows.length === 0) {
-          throw new Error(
-            `Record ${op.recordId} not found for user ${userId}`,
+          // Record doesn't exist on server yet — treat as create
+          const insertRecord = await client.query<{ version: number }>(
+            `INSERT INTO records (id, user_id, data, version, updated_at, created_at)
+             VALUES ($1, $2, $3, 1, NOW(), NOW())
+             RETURNING version`,
+            [op.recordId, userId, op.payload],
+          );
+          newVersion = insertRecord.rows[0].version;
+          await client.query(
+            `INSERT INTO versions (record_id, version)
+             VALUES ($1, $2)
+             ON CONFLICT (record_id) DO UPDATE SET version = EXCLUDED.version`,
+            [op.recordId, newVersion],
+          );
+        } else {
+          newVersion = updateRecord.rows[0].version;
+          await client.query(
+            `UPDATE versions SET version = $1 WHERE record_id = $2`,
+            [newVersion, op.recordId],
           );
         }
-        newVersion = updateRecord.rows[0].version;
-
-        // Update version table
-        await client.query(
-          `UPDATE versions SET version = $1 WHERE record_id = $2`,
-          [newVersion, op.recordId],
-        );
       } else {
         // delete
         const deleteRecord = await client.query<{ version: number }>(
@@ -133,12 +143,8 @@ export class SyncService {
           [op.recordId, userId],
         );
 
-        if (deleteRecord.rows.length === 0) {
-          throw new Error(
-            `Record ${op.recordId} not found for user ${userId}`,
-          );
-        }
-        newVersion = deleteRecord.rows[0].version;
+        // If record doesn't exist server-side, treat as already deleted
+        newVersion = deleteRecord.rows.length > 0 ? deleteRecord.rows[0].version : 0;
         // versions row cascades on DELETE from records
       }
 

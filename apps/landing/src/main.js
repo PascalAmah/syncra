@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Copy install command ──
 function copyInstall() {
-  navigator.clipboard.writeText('npm install @syncra/sdk').then(() => {
+  navigator.clipboard.writeText('npm install syncra-sdk').then(() => {
     const toast = document.getElementById('copy-toast');
     if (toast) {
       toast.classList.remove('hidden');
