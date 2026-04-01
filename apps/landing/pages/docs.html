@@ -43,13 +43,13 @@
       <a class="font-headline text-xl font-bold tracking-tighter text-white shrink-0" href="/">Syncra</a>
       <div class="hidden md:flex gap-8 items-center">
         <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/#features">Features</a>
-        <a class="text-primary font-semibold" href="/pages/docs.html">Docs</a>
-        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/pages/playground.html">Playground</a>
+        <a class="text-primary font-semibold" href="/docs">Docs</a>
+        <a class="text-on-surface-variant hover:text-white transition-colors duration-300" href="/playground">Playground</a>
       </div>
     </div>
     <div class="flex items-center gap-3" id="nav-auth-area">
-      <a href="/pages/login.html" class="hidden sm:block text-on-surface-variant hover:text-white transition-colors text-sm font-medium px-4 py-2">Sign in</a>
-      <a href="/pages/signup.html" class="bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-sm hover:brightness-110 transition-all">Get Started</a>
+      <a href="/login" class="hidden sm:block text-on-surface-variant hover:text-white transition-colors text-sm font-medium px-4 py-2">Sign in</a>
+      <a href="/signup" class="bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-sm hover:brightness-110 transition-all">Get Started</a>
       <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-on-surface-variant hover:text-white transition-colors" aria-label="Toggle menu">
         <span class="material-symbols-outlined">menu</span>
       </button>
@@ -58,10 +58,10 @@
   <div id="mobile-menu" class="md:hidden bg-surface-container border-t border-outline-variant/15 px-6 font-body text-sm">
     <div class="flex flex-col gap-1 py-4">
       <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/#features" onclick="toggleMobileMenu()">Features</a>
-      <a class="text-primary font-semibold py-2" href="/pages/docs.html" onclick="toggleMobileMenu()">Docs</a>
-      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/pages/playground.html" onclick="toggleMobileMenu()">Playground</a>
-      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/pages/login.html" onclick="toggleMobileMenu()">Sign in</a>
-      <a href="/pages/signup.html" class="mt-2 bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-left w-fit">Get Started</a>
+      <a class="text-primary font-semibold py-2" href="/docs" onclick="toggleMobileMenu()">Docs</a>
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/playground" onclick="toggleMobileMenu()">Playground</a>
+      <a class="text-on-surface-variant py-2 hover:text-white transition-colors" href="/login" onclick="toggleMobileMenu()">Sign in</a>
+      <a href="/signup" class="mt-2 bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-left w-fit">Get Started</a>
     </div>
   </div>
 </nav>
@@ -123,7 +123,7 @@
 <pre><span class="text-error-dim">import</span> { <span class="text-primary">SyncraSDK</span> } <span class="text-error-dim">from</span> <span class="text-tertiary">'@syncra/sdk'</span>;
 
 <span class="text-error-dim">const</span> <span class="text-primary">sdk</span> = <span class="text-error-dim">new</span> <span class="text-primary">SyncraSDK</span>({
-  baseUrl: <span class="text-tertiary">'https://api.syncra.dev'</span>,
+  baseUrl: <span class="text-tertiary">'https://syncra-bwd0.onrender.com'</span>,
   token: <span class="text-tertiary">'your-jwt-token'</span>,
   syncInterval: <span class="text-primary">30000</span>,
 });
@@ -230,9 +230,9 @@
 </div>
 <footer class="bg-surface-container-lowest border-t border-outline-variant/15">
   <div class="grid grid-cols-2 md:grid-cols-5 gap-8 px-6 md:px-8 py-16 max-w-[1440px] mx-auto font-body text-xs text-on-surface-variant">
-    <div class="col-span-2"><div class="font-headline text-lg font-bold text-white mb-4">Syncra</div><p class="max-w-xs mb-4">Infrastructure for the offline-first web.</p><p>© 2025 Syncra. All rights reserved.</p></div>
-    <div><h6 class="text-white font-bold mb-4">Product</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="/#features">Features</a></li><li><a class="hover:text-primary transition-colors" href="/pages/docs.html">Docs</a></li><li><a class="hover:text-primary transition-colors" href="/pages/playground.html">Playground</a></li></ul></div>
-    <div><h6 class="text-white font-bold mb-4">Resources</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="/pages/docs.html">Documentation</a></li><li><a class="hover:text-primary transition-colors" href="https://github.com" target="_blank">GitHub</a></li><li><a class="hover:text-primary transition-colors" href="https://npmjs.com/package/@syncra/sdk" target="_blank">npm</a></li></ul></div>
+    <div class="col-span-2"><div class="font-headline text-lg font-bold text-white mb-4">Syncra</div><p class="max-w-xs mb-4">Infrastructure for the offline-first web.</p><p>© 2026 Syncra. All rights reserved.</p></div>
+    <div><h6 class="text-white font-bold mb-4">Product</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="/#features">Features</a></li><li><a class="hover:text-primary transition-colors" href="/docs">Docs</a></li><li><a class="hover:text-primary transition-colors" href="/playground">Playground</a></li></ul></div>
+    <div><h6 class="text-white font-bold mb-4">Resources</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="/docs">Documentation</a></li><li><a class="hover:text-primary transition-colors" href="https://github.com/PascalAmah/syncra" target="_blank">GitHub</a></li><li><a class="hover:text-primary transition-colors" href="https://npmjs.com/package/@syncra/sdk" target="_blank">npm</a></li></ul></div>
     <div><h6 class="text-white font-bold mb-4">Legal</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="#">Privacy Policy</a></li><li><a class="hover:text-primary transition-colors" href="#">Terms</a></li></ul></div>
   </div>
 </footer>
@@ -287,7 +287,7 @@
     if (!area) return;
     // Replace sign-in + get-started with a dashboard link
     const dashLink = document.createElement('a');
-    dashLink.href = '/pages/dashboard.html';
+    dashLink.href = '/dashboard';
     dashLink.className = 'bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-sm hover:brightness-110 transition-all';
     dashLink.textContent = 'Dashboard';
     // Keep the mobile menu button

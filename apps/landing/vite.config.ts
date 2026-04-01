@@ -2,6 +2,30 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
+  plugins: [
+    {
+      name: 'html-rewrite',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          const map: Record<string, string> = {
+            '/':           '/landing.html',
+            '/login':      '/pages/login.html',
+            '/signup':     '/pages/signup.html',
+            '/dashboard':  '/pages/dashboard.html',
+            '/project':    '/pages/project.html',
+            '/docs':       '/pages/docs.html',
+            '/onboarding': '/pages/onboarding.html',
+            '/playground': '/pages/playground.html',
+            '/api-keys':   '/pages/api-keys.html',
+            '/settings':   '/pages/settings.html',
+          };
+          const path = req.url?.split('?')[0] ?? '';
+          if (map[path]) req.url = map[path];
+          next();
+        });
+      },
+    },
+  ],
   build: {
     outDir: 'dist',
     rollupOptions: {

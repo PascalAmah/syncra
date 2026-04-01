@@ -7,7 +7,9 @@
     { "source": "/project",    "destination": "/pages/project.html" },
     { "source": "/docs",       "destination": "/pages/docs.html" },
     { "source": "/onboarding", "destination": "/pages/onboarding.html" },
-    { "source": "/playground", "destination": "/pages/playground.html" }
+    { "source": "/playground", "destination": "/pages/playground.html" },
+    { "source": "/api-keys",   "destination": "/pages/api-keys.html" },
+    { "source": "/settings",   "destination": "/pages/settings.html" }
   ],
   "buildCommand": "vite build",
   "outputDirectory": "dist",
