@@ -2,6 +2,7 @@
 <html class="dark" lang="en">
 <head>
   <meta charset="utf-8"/>
+  <style>html{background:#0e0e0e}</style>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>Documentation | Syncra</title>
   <link href="https://fonts.googleapis.com" rel="preconnect"/>
@@ -111,8 +112,8 @@
         </section>
         <section id="quick-start" class="mb-12">
           <h2 class="font-headline text-xl font-bold text-white mb-4">Quick Start</h2>
-          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Initialize the SDK once at your app entry point:</p>
-          <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden">
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Initialize the SDK once at your app entry point. Use <code class="bg-surface-container px-2 py-0.5 rounded text-primary font-mono text-xs">apiKey</code> for project-level access or <code class="bg-surface-container px-2 py-0.5 rounded text-primary font-mono text-xs">bearerToken</code> for user-authenticated requests:</p>
+          <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden mb-6">
             <div class="flex items-center gap-2 px-4 py-3 bg-surface-container-highest border-b border-outline-variant/15">
               <div class="w-3 h-3 rounded-full bg-error-dim"></div>
               <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
@@ -124,7 +125,7 @@
 
 <span class="text-error-dim">const</span> <span class="text-primary">sdk</span> = <span class="text-error-dim">new</span> <span class="text-primary">SyncraSDK</span>({
   baseUrl: <span class="text-tertiary">'https://syncra-bwd0.onrender.com'</span>,
-  token: <span class="text-tertiary">'your-jwt-token'</span>,
+  apiKey: <span class="text-tertiary">'your-api-key'</span>,       <span class="text-on-surface-variant">// from your project dashboard</span>
   syncInterval: <span class="text-primary">30000</span>,
 });
 
@@ -134,6 +135,24 @@
 <span class="text-primary">sdk</span>.on(<span class="text-tertiary">'sync-complete'</span>, ({ applied }) =&gt; {
   console.log(<span class="text-tertiary">`Synced ${applied} records`</span>);
 });</pre>
+            </div>
+          </div>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Or authenticate as a user with a JWT bearer token:</p>
+          <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 py-3 bg-surface-container-highest border-b border-outline-variant/15">
+              <div class="w-3 h-3 rounded-full bg-error-dim"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div class="w-3 h-3 rounded-full bg-primary"></div>
+              <span class="ml-4 text-xs font-mono text-on-surface-variant">syncra-init.ts</span>
+            </div>
+            <div class="p-6 font-mono text-xs md:text-sm leading-loose overflow-x-auto">
+<pre><span class="text-error-dim">const</span> <span class="text-primary">sdk</span> = <span class="text-error-dim">new</span> <span class="text-primary">SyncraSDK</span>({
+  baseUrl: <span class="text-tertiary">'https://syncra-bwd0.onrender.com'</span>,
+  bearerToken: <span class="text-tertiary">'your-jwt-token'</span>,  <span class="text-on-surface-variant">// from login response</span>
+  syncInterval: <span class="text-primary">30000</span>,
+});
+
+<span class="text-error-dim">await</span> <span class="text-primary">sdk</span>.initialize();</pre>
             </div>
           </div>
         </section>
@@ -156,34 +175,136 @@
               </tr></thead>
               <tbody class="text-on-surface-variant">
                 <tr class="border-b border-outline-variant/10"><td class="py-2.5 pr-4 font-mono text-primary text-xs">baseUrl</td><td class="py-2.5 pr-4 font-mono text-tertiary text-xs">string</td><td class="py-2.5">Your Syncra API endpoint</td></tr>
-                <tr class="border-b border-outline-variant/10"><td class="py-2.5 pr-4 font-mono text-primary text-xs">token</td><td class="py-2.5 pr-4 font-mono text-tertiary text-xs">string</td><td class="py-2.5">JWT auth token</td></tr>
-                <tr class="border-b border-outline-variant/10"><td class="py-2.5 pr-4 font-mono text-primary text-xs">syncInterval</td><td class="py-2.5 pr-4 font-mono text-tertiary text-xs">number</td><td class="py-2.5">Sync interval in ms (default: 30000)</td></tr>
+                <tr class="border-b border-outline-variant/10"><td class="py-2.5 pr-4 font-mono text-primary text-xs">apiKey</td><td class="py-2.5 pr-4 font-mono text-tertiary text-xs">string</td><td class="py-2.5">Project API key (from your dashboard). Use this or <code class="font-mono text-xs text-primary">bearerToken</code></td></tr>
+                <tr class="border-b border-outline-variant/10"><td class="py-2.5 pr-4 font-mono text-primary text-xs">bearerToken</td><td class="py-2.5 pr-4 font-mono text-tertiary text-xs">string</td><td class="py-2.5">JWT bearer token for user-authenticated requests</td></tr>
+                <tr class="border-b border-outline-variant/10"><td class="py-2.5 pr-4 font-mono text-primary text-xs">userId</td><td class="py-2.5 pr-4 font-mono text-tertiary text-xs">string</td><td class="py-2.5">Optional user ID sent as <code class="font-mono text-xs text-primary">x-user-id</code> header</td></tr>
+                <tr class="border-b border-outline-variant/10"><td class="py-2.5 pr-4 font-mono text-primary text-xs">syncInterval</td><td class="py-2.5 pr-4 font-mono text-tertiary text-xs">number</td><td class="py-2.5">Auto-sync interval in ms (default: 30000)</td></tr>
               </tbody>
             </table>
+          </div>
+          <p class="text-on-surface-variant font-body text-sm mt-4">You can also update credentials at runtime:</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-xs mt-3 space-y-1 overflow-x-auto">
+            <div><span class="text-primary">sdk</span>.<span class="text-tertiary">setApiKey</span>(<span class="text-tertiary">'new-api-key'</span>);</div>
+            <div><span class="text-primary">sdk</span>.<span class="text-tertiary">setBearerToken</span>(<span class="text-tertiary">'new-jwt-token'</span>);</div>
+            <div><span class="text-primary">sdk</span>.<span class="text-tertiary">setUserId</span>(<span class="text-tertiary">'user-id'</span>);</div>
+          </div>
+        </section>
+        <section id="api-keys" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">API Keys</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">API keys are project-scoped credentials generated from your dashboard. They are sent via the <code class="bg-surface-container px-2 py-0.5 rounded text-primary font-mono text-xs">x-api-key</code> header on every sync request.</p>
+          <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden mb-4">
+            <div class="flex items-center gap-2 px-4 py-3 bg-surface-container-highest border-b border-outline-variant/15">
+              <div class="w-3 h-3 rounded-full bg-error-dim"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div class="w-3 h-3 rounded-full bg-primary"></div>
+              <span class="ml-4 text-xs font-mono text-on-surface-variant">example</span>
+            </div>
+            <div class="p-6 font-mono text-xs md:text-sm leading-loose overflow-x-auto">
+<pre><span class="text-error-dim">const</span> <span class="text-primary">sdk</span> = <span class="text-error-dim">new</span> <span class="text-primary">SyncraSDK</span>({
+  baseUrl: <span class="text-tertiary">'https://syncra-bwd0.onrender.com'</span>,
+  apiKey: <span class="text-tertiary">'syncra_pk_live_xxxxxxxxxxxx'</span>,
+});
+
+<span class="text-on-surface-variant">// Update the key at runtime (e.g. after project creation)</span>
+<span class="text-primary">sdk</span>.<span class="text-tertiary">setApiKey</span>(<span class="text-tertiary">'syncra_pk_live_new_key'</span>);</pre>
+            </div>
+          </div>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3">
+            <span class="material-symbols-outlined text-primary text-base mt-0.5 shrink-0">info</span>
+            <p class="text-on-surface-variant text-sm font-body">Generate and manage API keys from your <a href="/pages/dashboard.html" class="text-primary hover:underline">Dashboard</a>. API keys follow the format <code class="font-mono text-xs text-primary">syncra_pk_live_...</code> and are sent as the <code class="font-mono text-xs text-primary">x-api-key</code> header on every sync request. If both <code class="font-mono text-xs text-primary">apiKey</code> and <code class="font-mono text-xs text-primary">bearerToken</code> are provided, <code class="font-mono text-xs text-primary">apiKey</code> takes precedence.</p>
           </div>
         </section>
         <section id="createrecord" class="mb-12">
           <h2 class="font-headline text-xl font-bold text-white mb-4">createRecord</h2>
           <p class="text-on-surface-variant font-body leading-relaxed mb-4">Creates a new record locally and queues it for sync. Returns immediately — no network required.</p>
           <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
-            <span class="text-primary">sdk</span>.<span class="text-tertiary">createRecord</span>(<span class="text-on-surface-variant">data</span>): <span class="text-error-dim">Promise</span>&lt;<span class="text-tertiary">SyncRecord</span>&gt;
+            <span class="text-primary">sdk</span>.<span class="text-tertiary">createRecord</span>(<span class="text-on-surface-variant">data</span>: <span class="text-tertiary">Record&lt;string, unknown&gt;</span>): <span class="text-error-dim">Promise</span>&lt;<span class="text-tertiary">LocalRecord</span>&gt;
+          </div>
+        </section>
+        <section id="updaterecord" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">updateRecord</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Updates an existing record locally and queues the update for sync. Throws if the record does not exist.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
+            <span class="text-primary">sdk</span>.<span class="text-tertiary">updateRecord</span>(<span class="text-on-surface-variant">id</span>: <span class="text-tertiary">string</span>, <span class="text-on-surface-variant">data</span>: <span class="text-tertiary">Record&lt;string, unknown&gt;</span>): <span class="text-error-dim">Promise</span>&lt;<span class="text-tertiary">LocalRecord</span>&gt;
+          </div>
+        </section>
+        <section id="deleterecord" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">deleteRecord</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Deletes a record locally and queues the deletion for sync. Throws if the record does not exist.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
+            <span class="text-primary">sdk</span>.<span class="text-tertiary">deleteRecord</span>(<span class="text-on-surface-variant">id</span>: <span class="text-tertiary">string</span>): <span class="text-error-dim">Promise</span>&lt;<span class="text-tertiary">void</span>&gt;
+          </div>
+        </section>
+        <section id="getrecords" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">getRecords</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Returns all records currently in the local in-memory cache. Call <code class="bg-surface-container px-2 py-0.5 rounded text-primary font-mono text-xs">initialize()</code> first to restore records from IndexedDB on app load.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
+            <span class="text-primary">sdk</span>.<span class="text-tertiary">getRecords</span>(): <span class="text-tertiary">LocalRecord[]</span>
+          </div>
+        </section>
+        <section id="getpendingoperations" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">getPendingOperations</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Returns all operations that are queued and waiting to be synced to the server.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
+            <span class="text-primary">sdk</span>.<span class="text-tertiary">getPendingOperations</span>(): <span class="text-tertiary">LocalQueuedOperation[]</span>
           </div>
         </section>
         <section id="sync" class="mb-12">
           <h2 class="font-headline text-xl font-bold text-white mb-4">sync()</h2>
-          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Manually trigger a sync cycle. Pushes queued operations and pulls remote updates.</p>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Manually trigger a sync cycle. Pushes queued operations to the server and pulls remote updates. No-op when offline.</p>
           <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
             <span class="text-primary">sdk</span>.<span class="text-tertiary">sync</span>(): <span class="text-error-dim">Promise</span>&lt;<span class="text-tertiary">SyncResult</span>&gt;
+          </div>
+        </section>
+        <section id="isonlinestate" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">isOnlineState</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Returns the current network connectivity state.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
+            <span class="text-primary">sdk</span>.<span class="text-tertiary">isOnlineState</span>(): <span class="text-tertiary">boolean</span>
+          </div>
+        </section>
+        <section id="onconflict" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">onConflict</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Register a custom conflict resolution handler. If not set, the server version wins. The handler receives both versions and must return the resolved data and version to use.</p>
+          <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 py-3 bg-surface-container-highest border-b border-outline-variant/15">
+              <div class="w-3 h-3 rounded-full bg-error-dim"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div class="w-3 h-3 rounded-full bg-primary"></div>
+              <span class="ml-4 text-xs font-mono text-on-surface-variant">conflict-handler.ts</span>
+            </div>
+            <div class="p-6 font-mono text-xs md:text-sm leading-loose overflow-x-auto">
+<pre><span class="text-primary">sdk</span>.<span class="text-tertiary">onConflict</span>((conflict) =&gt; {
+  <span class="text-on-surface-variant">// conflict.recordId      — which record conflicted</span>
+  <span class="text-on-surface-variant">// conflict.clientVersion — your local version number</span>
+  <span class="text-on-surface-variant">// conflict.serverVersion — server's version number</span>
+  <span class="text-on-surface-variant">// conflict.serverData    — server's current data</span>
+
+  <span class="text-error-dim">return</span> {
+    data: { ...conflict.serverData, ...myLocalOverrides },
+    version: conflict.serverVersion,
+  };
+});</pre>
+            </div>
+          </div>
+        </section>
+        <section id="destroy" class="mb-12">
+          <h2 class="font-headline text-xl font-bold text-white mb-4">destroy</h2>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Cleans up network listeners and stops the auto-sync interval. Call this on logout or when tearing down the SDK instance.</p>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
+            <span class="text-primary">sdk</span>.<span class="text-tertiary">destroy</span>(): <span class="text-tertiary">void</span>
           </div>
         </section>
         <section id="events" class="mb-12">
           <h2 class="font-headline text-xl font-bold text-white mb-4">Events</h2>
           <p class="text-on-surface-variant font-body leading-relaxed mb-4">Subscribe using <code class="bg-surface-container px-2 py-0.5 rounded text-primary font-mono text-xs">sdk.on(event, handler)</code>.</p>
           <div class="space-y-3">
-            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">sync-complete</code><p class="text-on-surface-variant text-sm font-body">Fired after a successful sync. Payload: <code class="text-tertiary font-mono text-xs">{ applied, pushed }</code></p></div>
-            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">conflict</code><p class="text-on-surface-variant text-sm font-body">Fired when a conflict is detected. Payload: <code class="text-tertiary font-mono text-xs">ConflictEvent</code></p></div>
-            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">online</code><p class="text-on-surface-variant text-sm font-body">Fired when connectivity is restored.</p></div>
-            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">offline</code><p class="text-on-surface-variant text-sm font-body">Fired when the device goes offline.</p></div>
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">sync-start</code><p class="text-on-surface-variant text-sm font-body">Fired when a sync cycle begins.</p></div>
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">sync-complete</code><p class="text-on-surface-variant text-sm font-body">Fired after a successful sync. Payload: <code class="text-tertiary font-mono text-xs">{ applied: number, rejected: number }</code></p></div>
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">sync-failed</code><p class="text-on-surface-variant text-sm font-body">Fired when a sync cycle encounters an error. Payload: <code class="text-tertiary font-mono text-xs">{ error: Error }</code></p></div>
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">conflict</code><p class="text-on-surface-variant text-sm font-body">Fired when a conflict is detected during sync. Payload: <code class="text-tertiary font-mono text-xs">{ recordId, clientVersion, serverVersion, serverData }</code></p></div>
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">online</code><p class="text-on-surface-variant text-sm font-body">Fired when connectivity is restored. A sync is triggered automatically.</p></div>
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3"><code class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded shrink-0">offline</code><p class="text-on-surface-variant text-sm font-body">Fired when the device goes offline. Writes continue to work locally.</p></div>
           </div>
         </section>
       </section>
@@ -192,9 +313,20 @@
         <div class="h-px bg-outline-variant/20 mb-10"></div>
         <section id="authentication-api" class="mb-12">
           <h2 class="font-headline text-xl font-bold text-white mb-4">Authentication</h2>
-          <p class="text-on-surface-variant font-body leading-relaxed mb-4">All API requests require a Bearer token in the Authorization header.</p>
-          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
-            <span class="text-on-surface-variant">Authorization:</span> <span class="text-tertiary">Bearer &lt;your-jwt-token&gt;</span>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">API requests accept two authentication methods. Use one per request:</p>
+          <div class="space-y-3 mb-4">
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4">
+              <p class="text-on-surface-variant text-sm font-body mb-2"><span class="text-white font-medium">API key</span> — project-scoped, generated from your dashboard:</p>
+              <div class="bg-surface-container-lowest rounded-lg p-3 font-mono text-xs text-on-surface-variant overflow-x-auto">x-api-key: <span class="text-tertiary">syncra_pk_live_xxxxxxxxxxxx</span></div>
+            </div>
+            <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4">
+              <p class="text-on-surface-variant text-sm font-body mb-2"><span class="text-white font-medium">Bearer token</span> — JWT from the login response, for user-authenticated requests:</p>
+              <div class="bg-surface-container-lowest rounded-lg p-3 font-mono text-xs text-on-surface-variant overflow-x-auto">Authorization: <span class="text-tertiary">Bearer &lt;your-jwt-token&gt;</span></div>
+            </div>
+          </div>
+          <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4 flex items-start gap-3">
+            <span class="material-symbols-outlined text-primary text-base mt-0.5 shrink-0">info</span>
+            <p class="text-on-surface-variant text-sm font-body">If both headers are present, <code class="font-mono text-xs text-primary">x-api-key</code> takes precedence.</p>
           </div>
         </section>
         <section id="post-sync" class="mb-12">
@@ -210,8 +342,10 @@
   <span class="text-primary">"operations"</span>: [{
     <span class="text-primary">"id"</span>: <span class="text-tertiary">"op_abc123"</span>,
     <span class="text-primary">"type"</span>: <span class="text-tertiary">"create"</span>,
-    <span class="text-primary">"data"</span>: { <span class="text-primary">"title"</span>: <span class="text-tertiary">"My note"</span> },
-    <span class="text-primary">"timestamp"</span>: <span class="text-primary">1704067200000</span>
+    <span class="text-primary">"recordId"</span>: <span class="text-tertiary">"rec_xyz789"</span>,
+    <span class="text-primary">"payload"</span>: { <span class="text-primary">"title"</span>: <span class="text-tertiary">"My note"</span> },
+    <span class="text-primary">"version"</span>: <span class="text-primary">1</span>,
+    <span class="text-primary">"idempotencyKey"</span>: <span class="text-tertiary">"idem_abc123"</span>
   }]
 }</pre>
             </div>
@@ -245,8 +379,16 @@
     ]},
     { label: 'SDK Reference', children: [
       { label: 'SyncraSDK', id: 'syncrasdk' },
+      { label: 'API Keys', id: 'api-keys' },
       { label: 'createRecord', id: 'createrecord' },
+      { label: 'updateRecord', id: 'updaterecord' },
+      { label: 'deleteRecord', id: 'deleterecord' },
+      { label: 'getRecords', id: 'getrecords' },
+      { label: 'getPendingOperations', id: 'getpendingoperations' },
       { label: 'sync()', id: 'sync' },
+      { label: 'isOnlineState', id: 'isonlinestate' },
+      { label: 'onConflict', id: 'onconflict' },
+      { label: 'destroy', id: 'destroy' },
       { label: 'Events', id: 'events' },
     ]},
     { label: 'API Reference', children: [

@@ -96,6 +96,7 @@ body {
 /* Prevent horizontal scroll on all pages */
 html {
   overflow-x: hidden;
+  background: #0e0e0e;
 }
 
 /* ── Page transition loader ── */
