@@ -12,6 +12,10 @@ export interface SyncRecord {
   version: number;
   updated_at: string; // ISO 8601 timestamp
   created_at: string; // ISO 8601 timestamp
+  /** Monotonic cursor for deterministic delta pulls (Phase 1). */
+  cursor?: number;
+  /** Collection namespace (Phase 5). */
+  collection?: string;
 }
 
 /**
@@ -24,6 +28,8 @@ export interface Operation {
   payload: Record<string, any>;
   version: number;
   idempotencyKey: string;
+  /** Collection namespace (Phase 5). */
+  collection?: string;
 }
 
 /**
@@ -68,11 +74,23 @@ export interface SyncPushResponse {
 }
 
 /**
+ * A tombstone recording that a record was deleted.
+ * Carries a cursor so the delta pull can propagate deletions
+ * using the same monotonic cursor as record mutations (Phase 2).
+ */
+export interface TombstoneEntry {
+  recordId: string;
+  cursor: number;
+}
+
+/**
  * Response from GET /sync/updates endpoint
  */
 export interface SyncPullResponse {
   records: SyncRecord[];
   deletedRecordIds: string[];
+  /** Tombstones with cursors for delete propagation (Phase 2). */
+  tombstones?: TombstoneEntry[];
 }
 
 /**

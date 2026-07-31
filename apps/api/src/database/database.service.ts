@@ -13,16 +13,31 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private pool: Pool;
 
   constructor(private readonly configService: ConfigService) {
-    this.pool = new Pool({
+    this.pool = new Pool(this.buildPoolConfig());
+  }
+
+  private buildPoolConfig() {
+    const databaseUrl = this.configService.get<string>('DATABASE_URL');
+    const baseConfig = {
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+    };
+
+    // Prefer a single connection string when provided, falling back to the
+    // individual DB_* component variables (e.g. for local Docker compose).
+    if (databaseUrl) {
+      return { ...baseConfig, connectionString: databaseUrl };
+    }
+
+    return {
+      ...baseConfig,
       host: this.configService.get<string>('DB_HOST'),
       port: this.configService.get<number>('DB_PORT'),
       user: this.configService.get<string>('DB_USER'),
       password: this.configService.get<string>('DB_PASS'),
       database: this.configService.get<string>('DB_NAME'),
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
-    });
+    };
   }
 
   async onModuleInit(): Promise<void> {

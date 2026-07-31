@@ -8,7 +8,7 @@ import {
   IsInt,
   Min,
   ValidateNested,
-  IsISO8601,
+  IsOptional,
 } from 'class-validator';
 
 export class OperationDto {
@@ -30,6 +30,10 @@ export class OperationDto {
 
   @IsString()
   idempotencyKey: string;
+
+  @IsOptional()
+  @IsString()
+  collection?: string;
 }
 
 export class SyncRequestDto {
@@ -40,8 +44,18 @@ export class SyncRequestDto {
 }
 
 export class SyncUpdatesQueryDto {
-  @IsISO8601()
-  since: string;
+  @IsInt()
+  @Min(0)
+  cursor: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  limit?: number;
+
+  @IsOptional()
+  @IsString()
+  collection?: string;
 }
 
 export class SyncRecordDto {
@@ -49,11 +63,20 @@ export class SyncRecordDto {
   data: Record<string, any>;
   version: number;
   updated_at: string;
+  created_at: string;
+  cursor: number;
+  collection?: string;
+}
+
+export class TombstoneDto {
+  recordId: string;
+  cursor: number;
 }
 
 export class SyncUpdatesResponseDto {
   records: SyncRecordDto[];
   deletedRecordIds: string[];
+  tombstones: TombstoneDto[];
 }
 
 /**

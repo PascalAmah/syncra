@@ -16,13 +16,15 @@ interface SyncOperationRow {
   status: string;
 }
 
-interface VersionRow {
-  version: number;
-}
-
-interface RecordRow {
-  data: Record<string, any>;
-  version: number;
+/**
+ * Thrown inside applyOperation's transaction when a version mismatch is
+ * detected under SELECT ... FOR UPDATE (Phase 2 TOCTOU fix).
+ */
+export class VersionConflictError extends Error {
+  constructor(public readonly conflict: ConflictResponse) {
+    super('version_conflict');
+    this.name = 'VersionConflictError';
+  }
 }
 
 @Injectable()
@@ -43,31 +45,32 @@ export class SyncService {
         continue;
       }
 
-      if (op.type === 'update' || op.type === 'delete') {
-        const conflict = await this.checkVersionConflict(userId, op);
-        if (conflict) {
-          rejected.push(conflict);
-          continue;
+      try {
+        const result = await this.applyOperation(userId, op);
+        applied.push(result);
+      } catch (err) {
+        if (err instanceof VersionConflictError) {
+          rejected.push(err.conflict);
+        } else {
+          throw err;
         }
       }
-
-      const result = await this.applyOperation(userId, op);
-      applied.push(result);
     }
 
     return { applied, rejected };
   }
 
   /**
-   * Atomically applies a single operation inside a pg transaction.
-   * Steps:
-   *   1. For create: INSERT record + INSERT version row
-   *   2. For update: UPDATE record data + UPDATE version
-   *   3. For delete: DELETE record (version cascades)
-   *   4. INSERT event log entry
-   *   5. INSERT sync_operations row with status='applied'
-   * Rolls back the entire transaction on any error.
+   * Atomically applies an operation inside a single pg transaction.
    *
+   * For update and delete operations, the version check is performed
+   * inside the same transaction using SELECT ... FOR UPDATE on the
+   * versions table, eliminating the TOCTOU race between check and
+   * mutation (Phase 2).
+   *
+   * On delete, a tombstone row is inserted so that the delta pull
+   * endpoint can propagate deletions using the monotonic cursor
+   * (Phase 2).
    */
   async applyOperation(
     userId: string,
@@ -79,21 +82,69 @@ export class SyncService {
 
       let newVersion: number;
 
+      // ---- Version check for update / delete (inside transaction) ----
+      if (op.type === 'update' || op.type === 'delete') {
+        const versionRow = await client.query<{ version: number }>(
+          `SELECT v.version
+           FROM versions v
+           INNER JOIN records r ON r.id = v.record_id
+           WHERE v.record_id = $1 AND r.user_id = $2
+           FOR UPDATE OF v`,
+          [op.recordId, userId],
+        );
+
+        if (versionRow.rows.length > 0) {
+          const serverVersion = versionRow.rows[0].version;
+          if (op.version !== serverVersion) {
+            // Fetch server data for conflict response
+            const recordRow = await client.query<{ data: Record<string, any>; version: number }>(
+              `SELECT data, version FROM records WHERE id = $1 AND user_id = $2 LIMIT 1`,
+              [op.recordId, userId],
+            );
+            const serverData = recordRow.rows.length > 0 ? recordRow.rows[0].data : {};
+
+            // Record rejection in sync_operations
+            await client.query(
+              `INSERT INTO sync_operations
+                 (user_id, operation_type, record_id, payload, idempotency_key, status, collection)
+               VALUES ($1, $2, $3, $4, $5, 'rejected', $6)
+               ON CONFLICT (user_id, idempotency_key) DO NOTHING`,
+              [userId, op.type, op.recordId, op.payload, op.idempotencyKey, op.collection ?? 'default'],
+            );
+
+            // Rollback the transaction — version conflict, no mutation applied
+            await client.query('ROLLBACK');
+            throw new VersionConflictError({
+              operationId: op.id,
+              recordId: op.recordId,
+              reason: 'version_conflict',
+              clientVersion: op.version,
+              serverVersion,
+              serverData,
+            });
+          }
+        }
+        // If no version row exists, the record doesn't exist on the server
+        // (or was already deleted). Proceed — applyOperation handles the
+        // missing-record case (insert-as-create for updates, no-op for deletes).
+      }
+
+      // ---- Mutation ----
       if (op.type === 'create') {
-        // Insert the record; use op.recordId as the id if provided
-        const insertRecord = await client.query<{ id: string; version: number }>(
-          `INSERT INTO records (id, user_id, data, version, updated_at, created_at)
-           VALUES ($1, $2, $3, 1, NOW(), NOW())
+        const insertRecord = await client.query<{ id: string; version: number; cursor: number }>(
+          `INSERT INTO records (id, user_id, data, version, updated_at, created_at, collection)
+           VALUES ($1, $2, $3, 1, NOW(), NOW(), $4)
            ON CONFLICT (id) DO UPDATE
              SET data = EXCLUDED.data,
                  version = records.version + 1,
-                 updated_at = NOW()
-           RETURNING id, version`,
-          [op.recordId, userId, op.payload],
+                 updated_at = NOW(),
+                 cursor = nextval('records_cursor_seq'),
+                 collection = EXCLUDED.collection
+           RETURNING id, version, cursor`,
+          [op.recordId, userId, op.payload, op.collection ?? 'default'],
         );
         newVersion = insertRecord.rows[0].version;
 
-        // Upsert version row
         await client.query(
           `INSERT INTO versions (record_id, version)
            VALUES ($1, $2)
@@ -101,24 +152,23 @@ export class SyncService {
           [op.recordId, newVersion],
         );
       } else if (op.type === 'update') {
-        // Update record data and bump version
-        const updateRecord = await client.query<{ version: number }>(
+        const updateRecord = await client.query<{ version: number; cursor: number }>(
           `UPDATE records
            SET data = $1,
                version = version + 1,
-               updated_at = NOW()
+               updated_at = NOW(),
+               cursor = nextval('records_cursor_seq')
            WHERE id = $2 AND user_id = $3
-           RETURNING version`,
+           RETURNING version, cursor`,
           [op.payload, op.recordId, userId],
         );
 
         if (updateRecord.rows.length === 0) {
-          // Record doesn't exist on server yet — treat as create
-          const insertRecord = await client.query<{ version: number }>(
-            `INSERT INTO records (id, user_id, data, version, updated_at, created_at)
-             VALUES ($1, $2, $3, 1, NOW(), NOW())
-             RETURNING version`,
-            [op.recordId, userId, op.payload],
+          const insertRecord = await client.query<{ version: number; cursor: number }>(
+            `INSERT INTO records (id, user_id, data, version, updated_at, created_at, collection)
+             VALUES ($1, $2, $3, 1, NOW(), NOW(), $4)
+             RETURNING version, cursor`,
+            [op.recordId, userId, op.payload, op.collection ?? 'default'],
           );
           newVersion = insertRecord.rows[0].version;
           await client.query(
@@ -135,7 +185,7 @@ export class SyncService {
           );
         }
       } else {
-        // delete
+        // delete — insert a tombstone for cursor-based propagation
         const deleteRecord = await client.query<{ version: number }>(
           `DELETE FROM records
            WHERE id = $1 AND user_id = $2
@@ -143,12 +193,16 @@ export class SyncService {
           [op.recordId, userId],
         );
 
-        // If record doesn't exist server-side, treat as already deleted
         newVersion = deleteRecord.rows.length > 0 ? deleteRecord.rows[0].version : 0;
-        // versions row cascades on DELETE from records
+
+        // Insert tombstone so other clients discover this deletion via cursor
+        await client.query(
+          `INSERT INTO tombstones (record_id, user_id) VALUES ($1, $2)`,
+          [op.recordId, userId],
+        );
       }
 
-      // Insert event log entry (only for non-delete, since record must exist for FK)
+      // Insert event log entry (only for non-delete)
       if (op.type !== 'delete') {
         await client.query(
           `INSERT INTO events (record_id, type, payload, created_at)
@@ -160,11 +214,11 @@ export class SyncService {
       // Insert sync_operations row with status='applied'
       await client.query(
         `INSERT INTO sync_operations
-           (user_id, operation_type, record_id, payload, idempotency_key, status)
-         VALUES ($1, $2, $3, $4, $5, 'applied')
+           (user_id, operation_type, record_id, payload, idempotency_key, status, collection)
+         VALUES ($1, $2, $3, $4, $5, 'applied', $6)
          ON CONFLICT (user_id, idempotency_key)
            DO UPDATE SET status = 'applied'`,
-        [userId, op.type, op.recordId, op.payload, op.idempotencyKey],
+        [userId, op.type, op.recordId, op.payload, op.idempotencyKey, op.collection ?? 'default'],
       );
 
       await client.query('COMMIT');
@@ -176,121 +230,94 @@ export class SyncService {
         data: op.type !== 'delete' ? op.payload : undefined,
       };
     } catch (err) {
-      await client.query('ROLLBACK');
+      // VersionConflictError already rolled back — just release and rethrow
+      if (err instanceof VersionConflictError) {
+        client.release();
+        throw err;
+      }
+      await client.query('ROLLBACK').catch(() => {});
       throw err;
     } finally {
-      client.release();
+      // Only release if not already released by VersionConflictError path
+      try { client.release(); } catch { /* already released */ }
     }
   }
 
   /**
-   * Returns all records for the given user updated after the `since` timestamp.
+   * Returns records and tombstones for the given user with cursor > $cursor,
+   * ordered by cursor ascending. Both records and tombstones share the same
+   * monotonic cursor space so the client can track a single cursor across
+   * creates, updates, and deletes (Phase 2).
    */
   async getSyncUpdates(
     userId: string,
-    since: string,
+    cursor: number,
+    limit: number,
+    clientId?: string,
+    collection?: string,
   ): Promise<SyncUpdatesResponseDto> {
+    const collectionFilter = collection ? 'AND collection = $4' : '';
+    const queryParams = collection
+      ? [userId, cursor, limit, collection]
+      : [userId, cursor, limit];
+
     const result = await this.db.query<{
       id: string;
       data: Record<string, any>;
       version: number;
       updated_at: string;
+      created_at: string;
+      cursor: number;
+      collection: string;
     }>(
-      `SELECT id, data, version, updated_at
+      `SELECT id, data, version, updated_at, created_at, cursor, collection
        FROM records
        WHERE user_id = $1
-         AND updated_at > $2::timestamptz
-       ORDER BY updated_at ASC`,
-      [userId, since],
+         AND cursor > $2
+         ${collectionFilter}
+       ORDER BY cursor ASC
+       LIMIT $3`,
+      queryParams,
     );
 
-    // Return record IDs that were deleted after the since timestamp
-    const deletedResult = await this.db.query<{ record_id: string }>(
-      `SELECT record_id
-       FROM sync_operations
+    // Query tombstones using cursor — each delete inserts a tombstone row
+    // with an auto-incrementing cursor.
+    const tombstoneResult = await this.db.query<{ record_id: string; cursor: number }>(
+      `SELECT record_id, cursor
+       FROM tombstones
        WHERE user_id = $1
-         AND operation_type = 'delete'
-         AND status = 'applied'
-         AND created_at > $2::timestamptz`,
-      [userId, since],
+         AND cursor > $2
+       ORDER BY cursor ASC
+       LIMIT $3`,
+      [userId, cursor, limit],
     );
+
+    // Track client cursor state for future sync optimization
+    if (clientId) {
+      const recordCursors = result.rows.map((r) => r.cursor);
+      const tombstoneCursors = tombstoneResult.rows.map((r) => r.cursor);
+      const allCursors = [...recordCursors, ...tombstoneCursors];
+      const lastCursor = allCursors.length > 0 ? Math.max(...allCursors) : cursor;
+
+      await this.db.query(
+        `INSERT INTO client_cursors (client_id, user_id, last_cursor, last_seen_at)
+         VALUES ($1, $2, $3, NOW())
+         ON CONFLICT (client_id, user_id)
+           DO UPDATE SET last_cursor = $3, last_seen_at = NOW()`,
+        [clientId, userId, lastCursor],
+      );
+    }
 
     return {
       records: result.rows,
-      deletedRecordIds: deletedResult.rows.map((r: { record_id: string }) => r.record_id),
+      deletedRecordIds: tombstoneResult.rows.map((r) => r.record_id),
+      tombstones: tombstoneResult.rows.map((r) => ({ recordId: r.record_id, cursor: r.cursor })),
     };
   }
 
   /**
-   * Checks if the operation's version matches the server's current version.
-   * For update/delete operations only. Returns a ConflictResponse if there
-   * is a version mismatch, or null if versions match (or record not found).
-   *
-   */
-  async checkVersionConflict(
-    userId: string,
-    op: OperationDto,
-  ): Promise<ConflictResponse | null> {
-    // Query the versions table for the current server version
-    const versionResult = await this.db.query<VersionRow>(
-      `SELECT v.version
-       FROM versions v
-       JOIN records r ON r.id = v.record_id
-       WHERE v.record_id = $1
-         AND r.user_id = $2
-       LIMIT 1`,
-      [op.recordId, userId],
-    );
-
-    // If no version row exists, the record doesn't exist on the server.
-    // Let the operation proceed (will be handled by atomic application in 6.6).
-    if (versionResult.rows.length === 0) {
-      return null;
-    }
-
-    const serverVersion = versionResult.rows[0].version;
-
-    // Versions match — no conflict
-    if (op.version === serverVersion) {
-      return null;
-    }
-
-    // Version mismatch — fetch server record data for conflict response
-    const recordResult = await this.db.query<RecordRow>(
-      `SELECT data, version
-       FROM records
-       WHERE id = $1
-         AND user_id = $2
-       LIMIT 1`,
-      [op.recordId, userId],
-    );
-
-    const serverData =
-      recordResult.rows.length > 0 ? recordResult.rows[0].data : {};
-
-    // Insert rejected operation into sync_operations table
-    await this.db.query(
-      `INSERT INTO sync_operations
-         (user_id, operation_type, record_id, payload, idempotency_key, status)
-       VALUES ($1, $2, $3, $4, $5, 'rejected')
-       ON CONFLICT (user_id, idempotency_key) DO NOTHING`,
-      [userId, op.type, op.recordId, op.payload, op.idempotencyKey],
-    );
-
-    return {
-      operationId: op.id,
-      recordId: op.recordId,
-      reason: 'version_conflict',
-      clientVersion: op.version,
-      serverVersion,
-      serverData,
-    };
-  }
-
-  /**
-   * Checks if an operation with the given idempotency key has already been applied
-   * for this user. Returns the cached OperationResult if found, or null otherwise.
-   *
+   * Checks if an operation with the given idempotency key has already been
+   * applied for this user.
    */
   async checkIdempotency(
     userId: string,

@@ -6,6 +6,10 @@ export interface SyncRecord {
   version: number;
   updated_at: string;
   created_at: string;
+  /** Monotonic cursor for deterministic delta pulls (Phase 1). */
+  cursor?: number;
+  /** Collection namespace (Phase 5). */
+  collection?: string;
 }
 
 export interface QueuedOperation {
@@ -20,6 +24,8 @@ export interface QueuedOperation {
   maxRetries?: number;
   createdAt: Date;
   nextRetryAt?: Date;
+  /** Collection namespace (Phase 5). */
+  collection?: string;
 }
 
 export interface ResolvedRecord {
@@ -46,4 +52,6 @@ export interface SyncPushResponse {
 export interface SyncPullResponse {
   records: SyncRecord[];
   deletedRecordIds: string[];
+  /** Tombstones with cursors for delete propagation (Phase 2). */
+  tombstones?: Array<{ recordId: string; cursor: number }>;
 }
