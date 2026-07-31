@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SyncService } from './sync.service';
+import { SyncService, VersionConflictError } from './sync.service';
 import { OperationDto } from './dto/sync.dto';
 
 // Mock PoolClient returned by db.getClient()
@@ -216,7 +216,7 @@ describe('SyncService', () => {
     });
   });
 
-  describe('checkVersionConflict', () => {
+  describe('checkVersionConflict (via applyOperation)', () => {
     const makeOp = (overrides: Partial<OperationDto> = {}): OperationDto => ({
       id: 'op-1',
       type: 'update',
@@ -227,36 +227,59 @@ describe('SyncService', () => {
       ...overrides,
     });
 
-    it('returns null when no version row exists for the record', async () => {
-      mockQuery.mockResolvedValue({ rows: [] });
+    it('proceeds when no version row exists', async () => {
+      // applyOperation: BEGIN, SELECT FOR UPDATE (empty), UPDATE records (0 rows → fallback),
+      //                  INSERT records, INSERT versions, INSERT events, INSERT sync_op, COMMIT
+      mockClientQuery
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [] }) // SELECT FOR UPDATE — no version row
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE records — 0 rows (record gone)
+        .mockResolvedValueOnce({ rows: [{ version: 1 }] }) // INSERT records (fallback)
+        .mockResolvedValueOnce({ rows: [] }) // INSERT versions
+        .mockResolvedValueOnce({ rows: [] }) // INSERT events
+        .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations
+        .mockResolvedValueOnce(undefined); // COMMIT
 
-      const result = await service.checkVersionConflict('user-1', makeOp());
+      const result = await service.applyOperation('user-1', makeOp());
 
-      expect(result).toBeNull();
+      expect(result.operationId).toBe('op-1');
+      expect(mockClientQuery.mock.calls[0][0]).toBe('BEGIN');
     });
 
-    it('returns null when operation version matches server version', async () => {
-      mockQuery.mockResolvedValue({ rows: [{ version: 2 }] });
+    it('proceeds when versions match', async () => {
+      // applyOperation: BEGIN, SELECT FOR UPDATE (match), UPDATE records, UPDATE versions,
+      //                  INSERT events, INSERT sync_op, COMMIT
+      mockClientQuery
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ version: 2 }] }) // SELECT FOR UPDATE — match
+        .mockResolvedValueOnce({ rows: [{ version: 3 }] }) // UPDATE records
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE versions
+        .mockResolvedValueOnce({ rows: [] }) // INSERT events
+        .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations
+        .mockResolvedValueOnce(undefined); // COMMIT
 
-      const result = await service.checkVersionConflict('user-1', makeOp({ version: 2 }));
+      const result = await service.applyOperation('user-1', makeOp({ version: 2 }));
 
-      expect(result).toBeNull();
+      expect(result.operationId).toBe('op-1');
+      expect(result.newVersion).toBe(3);
     });
 
-    it('returns ConflictResponse when versions mismatch', async () => {
+    it('throws VersionConflictError when versions mismatch', async () => {
       const serverData = { title: 'Server Title', completed: true };
-      // First call: versions table → server version 3
-      // Second call: records table → server data
-      // Third call: insert rejected sync_operation
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ version: 3 }] })
-        .mockResolvedValueOnce({ rows: [{ data: serverData, version: 3 }] })
-        .mockResolvedValueOnce({ rows: [] });
+      // applyOperation: BEGIN, SELECT FOR UPDATE (mismatch), SELECT records (serverData),
+      //                  INSERT sync_op (rejected), ROLLBACK, throw
+      mockClientQuery
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ version: 3 }] }) // SELECT FOR UPDATE — server v3, client v2
+        .mockResolvedValueOnce({ rows: [{ data: serverData, version: 3 }] }) // SELECT records
+        .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations (rejected)
+        .mockResolvedValueOnce(undefined); // ROLLBACK
 
       const op = makeOp({ version: 2 });
-      const result = await service.checkVersionConflict('user-1', op);
+      const err = await service.applyOperation('user-1', op).catch((e) => e);
 
-      expect(result).toEqual({
+      expect(err).toBeInstanceOf(VersionConflictError);
+      expect(err.conflict).toEqual({
         operationId: 'op-1',
         recordId: 'rec-1',
         reason: 'version_conflict',
@@ -264,40 +287,61 @@ describe('SyncService', () => {
         serverVersion: 3,
         serverData,
       });
+
+      // ROLLBACK was called
+      expect(mockClientQuery.mock.calls[4][0]).toBe('ROLLBACK');
     });
 
-    it('includes empty serverData when record row is missing', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ version: 5 }] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] });
+    it('includes empty serverData on conflict when record row is missing', async () => {
+      // applyOperation: BEGIN, SELECT FOR UPDATE (mismatch), SELECT records (empty),
+      //                  INSERT sync_op (rejected), ROLLBACK
+      mockClientQuery
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ version: 5 }] }) // SELECT FOR UPDATE — server v5, client v1
+        .mockResolvedValueOnce({ rows: [] }) // SELECT records — empty
+        .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations (rejected)
+        .mockResolvedValueOnce(undefined); // ROLLBACK
 
-      const result = await service.checkVersionConflict('user-1', makeOp({ version: 1 }));
+      const err = await service
+        .applyOperation('user-1', makeOp({ version: 1 }))
+        .catch((e) => e);
 
-      expect(result).not.toBeNull();
-      expect(result!.serverData).toEqual({});
+      expect(err).toBeInstanceOf(VersionConflictError);
+      expect(err.conflict.serverData).toEqual({});
     });
 
     it('inserts rejected sync_operation row on conflict', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ version: 3 }] })
-        .mockResolvedValueOnce({ rows: [{ data: {}, version: 3 }] })
-        .mockResolvedValueOnce({ rows: [] });
+      mockClientQuery
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ version: 3 }] }) // SELECT FOR UPDATE — mismatch
+        .mockResolvedValueOnce({ rows: [{ data: {}, version: 3 }] }) // SELECT records
+        .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations (rejected)
+        .mockResolvedValueOnce(undefined); // ROLLBACK
 
-      await service.checkVersionConflict('user-1', makeOp({ version: 2 }));
+      await service.applyOperation('user-1', makeOp({ version: 2 })).catch(() => {});
 
-      const insertCall = mockQuery.mock.calls[2];
+      // INSERT into sync_operations with status='rejected'
+      const insertCall = mockClientQuery.mock.calls[3];
       expect(insertCall[0]).toContain('sync_operations');
       expect(insertCall[0]).toContain("'rejected'");
       expect(insertCall[1]).toContain('user-1');
     });
 
-    it('queries versions table with record_id and user_id', async () => {
-      mockQuery.mockResolvedValue({ rows: [] });
+    it('uses SELECT ... FOR UPDATE with record_id and user_id', async () => {
+      mockClientQuery
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [] }) // SELECT FOR UPDATE — empty (will proceed)
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE records — fallback
+        .mockResolvedValueOnce({ rows: [{ version: 1 }] }) // INSERT records
+        .mockResolvedValueOnce({ rows: [] }) // INSERT versions
+        .mockResolvedValueOnce({ rows: [] }) // INSERT events
+        .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations
+        .mockResolvedValueOnce(undefined); // COMMIT
 
-      await service.checkVersionConflict('user-42', makeOp({ recordId: 'rec-99' }));
+      await service.applyOperation('user-42', makeOp({ recordId: 'rec-99' }));
 
-      const [sql, params] = mockQuery.mock.calls[0];
+      const [sql, params] = mockClientQuery.mock.calls[1];
+      expect(sql).toContain('FOR UPDATE');
       expect(sql).toContain('versions');
       expect(params).toContain('rec-99');
       expect(params).toContain('user-42');
@@ -307,15 +351,16 @@ describe('SyncService', () => {
   describe('processOperations - version conflict detection', () => {
     it('rejects update operation with version mismatch', async () => {
       const serverData = { title: 'Server' };
-      // idempotency check → no cached result
-      mockQuery
-        .mockResolvedValueOnce({ rows: [] })
-        // versions table → server version 3
-        .mockResolvedValueOnce({ rows: [{ version: 3 }] })
-        // records table → server data
-        .mockResolvedValueOnce({ rows: [{ data: serverData, version: 3 }] })
-        // insert rejected op
-        .mockResolvedValueOnce({ rows: [] });
+      // checkIdempotency → no cached result
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      // applyOperation: BEGIN, SELECT FOR UPDATE (mismatch), SELECT records, INSERT rejected, ROLLBACK
+      mockClientQuery
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ version: 3 }] }) // SELECT FOR UPDATE — server v3
+        .mockResolvedValueOnce({ rows: [{ data: serverData, version: 3 }] }) // SELECT records
+        .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations (rejected)
+        .mockResolvedValueOnce(undefined); // ROLLBACK
 
       const ops = [
         {
@@ -343,11 +388,16 @@ describe('SyncService', () => {
     });
 
     it('rejects delete operation with version mismatch', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ version: 5 }] })
-        .mockResolvedValueOnce({ rows: [{ data: { x: 1 }, version: 5 }] })
-        .mockResolvedValueOnce({ rows: [] });
+      // checkIdempotency → no cached result
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      // applyOperation: BEGIN, SELECT FOR UPDATE (mismatch), SELECT records, INSERT rejected, ROLLBACK
+      mockClientQuery
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ version: 5 }] }) // SELECT FOR UPDATE — server v5
+        .mockResolvedValueOnce({ rows: [{ data: { x: 1 }, version: 5 }] }) // SELECT records
+        .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations (rejected)
+        .mockResolvedValueOnce(undefined); // ROLLBACK
 
       const ops = [
         {
@@ -367,9 +417,11 @@ describe('SyncService', () => {
     });
 
     it('skips version check for create operations', async () => {
-      // Only one db.query call expected: idempotency check
-      // applyOperation uses getClient() separately
+      // checkIdempotency → no cached result
       mockQuery.mockResolvedValue({ rows: [] });
+
+      // applyOperation (create, no version check): BEGIN, INSERT records, INSERT versions,
+      //                                          INSERT events, INSERT sync_op, COMMIT
       mockClientQuery
         .mockResolvedValueOnce(undefined) // BEGIN
         .mockResolvedValueOnce({ rows: [{ id: 'rec-new', version: 1 }] }) // INSERT records
@@ -398,13 +450,14 @@ describe('SyncService', () => {
     });
 
     it('applies update operation when versions match', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [] })          // idempotency check
-        .mockResolvedValueOnce({ rows: [{ version: 3 }] }); // versions match
+      // checkIdempotency → no cached result
+      mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      // applyOperation (update) client queries
+      // applyOperation: BEGIN, SELECT FOR UPDATE (match), UPDATE records, UPDATE versions,
+      //                  INSERT events, INSERT sync_op, COMMIT
       mockClientQuery
         .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ version: 3 }] }) // SELECT FOR UPDATE — matches client v3
         .mockResolvedValueOnce({ rows: [{ version: 4 }] }) // UPDATE records
         .mockResolvedValueOnce({ rows: [] }) // UPDATE versions
         .mockResolvedValueOnce({ rows: [] }) // INSERT events
@@ -429,9 +482,16 @@ describe('SyncService', () => {
     });
 
     it('idempotency check takes precedence over version conflict', async () => {
-      // If idempotency key is already applied, skip version check entirely
+      // If idempotency key is already applied, skip applyOperation entirely
       mockQuery.mockResolvedValueOnce({
-        rows: [{ id: 'op-cached', record_id: 'rec-1', payload: { cached: true }, status: 'applied' }],
+        rows: [
+          {
+            id: 'op-cached',
+            record_id: 'rec-1',
+            payload: { cached: true },
+            status: 'applied',
+          },
+        ],
       });
 
       const ops = [
@@ -440,7 +500,7 @@ describe('SyncService', () => {
           type: 'update' as const,
           recordId: 'rec-1',
           payload: { title: 'New' },
-          version: 99, // would conflict
+          version: 99, // would conflict, but never checked
           idempotencyKey: 'key-cached',
         },
       ];
@@ -451,6 +511,8 @@ describe('SyncService', () => {
       expect(result.rejected).toHaveLength(0);
       // Only the idempotency check should have been called
       expect(mockQuery).toHaveBeenCalledTimes(1);
+      // applyOperation (and thus client.query) never called
+      expect(mockClientQuery).not.toHaveBeenCalled();
     });
   });
 
@@ -486,9 +548,10 @@ describe('SyncService', () => {
       expect(mockClientRelease).toHaveBeenCalledTimes(1);
     });
 
-    it('wraps update in a transaction: BEGIN, UPDATE record, UPDATE version, INSERT event, INSERT sync_op, COMMIT', async () => {
+    it('wraps update in a transaction: BEGIN, SELECT FOR UPDATE (version check), UPDATE record, UPDATE version, INSERT event, INSERT sync_op, COMMIT', async () => {
       mockClientQuery
         .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ version: 3 }] }) // SELECT FOR UPDATE — match
         .mockResolvedValueOnce({ rows: [{ version: 4 }] }) // UPDATE records
         .mockResolvedValueOnce({ rows: [] }) // UPDATE versions
         .mockResolvedValueOnce({ rows: [] }) // INSERT events
@@ -500,28 +563,30 @@ describe('SyncService', () => {
         makeOp({ type: 'update', version: 3 }),
       );
 
-      expect(mockClientQuery).toHaveBeenCalledTimes(6);
+      expect(mockClientQuery).toHaveBeenCalledTimes(7);
       expect(mockClientQuery.mock.calls[0][0]).toBe('BEGIN');
-      expect(mockClientQuery.mock.calls[5][0]).toBe('COMMIT');
+      expect(mockClientQuery.mock.calls[6][0]).toBe('COMMIT');
       expect(result.newVersion).toBe(4);
       expect(result.data).toEqual({ title: 'Test' });
     });
 
-    it('wraps delete in a transaction: BEGIN, DELETE record, INSERT sync_op, COMMIT (no event insert)', async () => {
+    it('wraps delete in a transaction: BEGIN, SELECT FOR UPDATE, DELETE record, INSERT tombstone, INSERT sync_op, COMMIT', async () => {
       mockClientQuery
         .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ version: 2 }] }) // SELECT FOR UPDATE — match
         .mockResolvedValueOnce({ rows: [{ version: 2 }] }) // DELETE records
+        .mockResolvedValueOnce({ rows: [] }) // INSERT tombstones
         .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations
         .mockResolvedValueOnce(undefined); // COMMIT
 
       const result = await service.applyOperation(
         'user-1',
-        makeOp({ type: 'delete' }),
+        makeOp({ type: 'delete', version: 2 }),
       );
 
-      expect(mockClientQuery).toHaveBeenCalledTimes(4);
+      expect(mockClientQuery).toHaveBeenCalledTimes(6);
       expect(mockClientQuery.mock.calls[0][0]).toBe('BEGIN');
-      expect(mockClientQuery.mock.calls[3][0]).toBe('COMMIT');
+      expect(mockClientQuery.mock.calls[5][0]).toBe('COMMIT');
       expect(result.newVersion).toBe(2);
       expect(result.data).toBeUndefined();
     });
@@ -529,7 +594,8 @@ describe('SyncService', () => {
     it('rolls back and releases client on error', async () => {
       mockClientQuery
         .mockResolvedValueOnce(undefined) // BEGIN
-        .mockRejectedValueOnce(new Error('DB error')); // INSERT records fails
+        .mockRejectedValueOnce(new Error('DB error')) // INSERT records fails
+        .mockResolvedValueOnce(undefined); // ROLLBACK (in catch block)
 
       await expect(
         service.applyOperation('user-1', makeOp()),

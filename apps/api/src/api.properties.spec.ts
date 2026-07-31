@@ -15,7 +15,7 @@ vi.mock('bcrypt', () => ({
 import { AuthService } from './auth/auth.service';
 import { AuthGuard } from './auth/auth.guard';
 import { RecordsService } from './records/records.service';
-import { SyncService } from './sync/sync.service';
+import { SyncService, VersionConflictError } from './sync/sync.service';
 import { LoggerService } from './logger/logger.service';
 import { HealthService } from './health/health.service';
 import * as bcrypt from 'bcrypt';
@@ -423,11 +423,20 @@ describe('Feature: syncra-offline-sync-engine, Property 18: Version Conflict Det
         fc.integer({ min: 51, max: 100 }),
         dataArb,
         async (userId, clientVersion, serverVersion, serverData) => {
+          const mockClientQuery = vi.fn();
+          const mockClientRelease = vi.fn();
+          const mockClient = { query: mockClientQuery, release: mockClientRelease };
+
           const db = makeDb();
-          db.query
-            .mockResolvedValueOnce({ rows: [{ version: serverVersion }] }) // versions table
-            .mockResolvedValueOnce({ rows: [{ data: serverData, version: serverVersion }] }) // records table
-            .mockResolvedValueOnce({ rows: [] }); // insert rejected op
+          db.getClient.mockResolvedValue(mockClient);
+
+          // applyOperation: BEGIN, SELECT FOR UPDATE (mismatch), SELECT records, INSERT rejected, ROLLBACK
+          mockClientQuery
+            .mockResolvedValueOnce(undefined) // BEGIN
+            .mockResolvedValueOnce({ rows: [{ version: serverVersion }] }) // SELECT FOR UPDATE
+            .mockResolvedValueOnce({ rows: [{ data: serverData, version: serverVersion }] }) // SELECT records
+            .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations (rejected)
+            .mockResolvedValueOnce(undefined); // ROLLBACK
 
           const service = new SyncService(db);
           const op = {
@@ -439,8 +448,10 @@ describe('Feature: syncra-offline-sync-engine, Property 18: Version Conflict Det
             idempotencyKey: 'ik-conflict',
           };
 
-          const result = await service.checkVersionConflict(userId, op);
+          const err = await service.applyOperation(userId, op).catch((e) => e);
 
+          if (!(err instanceof VersionConflictError)) return false;
+          const result = err.conflict;
           return (
             result !== null &&
             result.clientVersion === clientVersion &&
@@ -507,32 +518,36 @@ describe('Feature: syncra-offline-sync-engine, Property 19: Atomic Operation App
 describe('Feature: syncra-offline-sync-engine, Property 20: Delta Pull Returns Changed Records', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it('should only return records with updated_at > since timestamp', async () => {
+  it('should only return records with cursor > given cursor value', async () => {
     await fc.assert(
       fc.asyncProperty(
         uuidArb,
-        fc.integer({ min: 1577836800000, max: 1893456000000 }).map((ms) => new Date(ms).toISOString()),
+        fc.integer({ min: 0, max: 100000 }),
+        fc.integer({ min: 1, max: 1000 }),
         fc.array(
           fc.record({
             id: fc.uuid(),
             data: dataArb,
             version: fc.integer({ min: 1, max: 100 }),
             updated_at: fc.constant('2024-06-01T00:00:00Z'),
+            created_at: fc.constant('2024-06-01T00:00:00Z'),
+            cursor: fc.integer({ min: 1, max: 100000 }),
           }),
           { minLength: 0, maxLength: 5 },
         ),
-        async (userId, since, records) => {
+        async (userId, cursor, limit, records) => {
           const db = makeDb();
           db.query.mockResolvedValue({ rows: records });
 
           const service = new SyncService(db);
-          const result = await service.getSyncUpdates(userId, since);
+          const result = await service.getSyncUpdates(userId, cursor, limit);
 
-          // Verify the query was called with the since parameter
+          // Verify the query uses cursor-based ordering (not updated_at)
           const [sql, params] = db.query.mock.calls[0];
           return (
-            sql.includes('updated_at') &&
-            params.includes(since) &&
+            sql.includes('cursor') &&
+            params.includes(cursor) &&
+            params.includes(limit) &&
             result.records.length === records.length
           );
         },
@@ -559,11 +574,20 @@ describe('Feature: syncra-offline-sync-engine, Property 22: Conflict Response In
         fc.integer({ min: 51, max: 100 }),
         dataArb,
         async (userId, recordId, clientVersion, serverVersion, serverData) => {
+          const mockClientQuery = vi.fn();
+          const mockClientRelease = vi.fn();
+          const mockClient = { query: mockClientQuery, release: mockClientRelease };
+
           const db = makeDb();
-          db.query
-            .mockResolvedValueOnce({ rows: [{ version: serverVersion }] })
-            .mockResolvedValueOnce({ rows: [{ data: serverData, version: serverVersion }] })
-            .mockResolvedValueOnce({ rows: [] });
+          db.getClient.mockResolvedValue(mockClient);
+
+          // applyOperation: BEGIN, SELECT FOR UPDATE (mismatch), SELECT records, INSERT rejected, ROLLBACK
+          mockClientQuery
+            .mockResolvedValueOnce(undefined) // BEGIN
+            .mockResolvedValueOnce({ rows: [{ version: serverVersion }] }) // SELECT FOR UPDATE
+            .mockResolvedValueOnce({ rows: [{ data: serverData, version: serverVersion }] }) // SELECT records
+            .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations (rejected)
+            .mockResolvedValueOnce(undefined); // ROLLBACK
 
           const service = new SyncService(db);
           const op = {
@@ -575,8 +599,10 @@ describe('Feature: syncra-offline-sync-engine, Property 22: Conflict Response In
             idempotencyKey: 'ik-22',
           };
 
-          const result = await service.checkVersionConflict(userId, op);
+          const err = await service.applyOperation(userId, op).catch((e) => e);
 
+          if (!(err instanceof VersionConflictError)) return false;
+          const result = err.conflict;
           return (
             result !== null &&
             result.recordId === recordId &&

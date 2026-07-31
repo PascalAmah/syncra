@@ -33,6 +33,15 @@ import { getPendingOperations, markOperationApplied } from './db/queue-store';
 import { getMetadata, setMetadata } from './db/metadata-store';
 import { SyncraSDK } from './syncra-sdk';
 
+// Default fetch mock — returns empty delta so tests that don't explicitly
+// mock fetch won't crash on pullDelta(). Individual tests override as needed.
+beforeEach(() => {
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }),
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -90,14 +99,14 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
 
     vi.mocked(getPendingOperations).mockResolvedValue([pendingOp]);
     vi.mocked(markOperationApplied).mockResolvedValue(undefined);
-    vi.mocked(getMetadata).mockResolvedValue(undefined); // first sync
+    vi.mocked(getMetadata).mockResolvedValue(undefined); // first sync, no cursor
 
-    const serverRecord = { id: 'rec-server-1', data: { x: 1 }, version: 2, updated_at: '2024-01-01T00:00:00Z', created_at: '2024-01-01T00:00:00Z' };
+    const serverRecord = { id: 'rec-server-1', data: { x: 1 }, version: 2, updated_at: '2024-01-01T00:00:00Z', created_at: '2024-01-01T00:00:00Z', cursor: 5 };
 
     mockFetch([
       // POST /sync response
       { ok: true, json: async () => ({ applied: [{ operationId: 'op-1', recordId: 'rec-1', newVersion: 1 }], rejected: [] }) },
-      // GET /sync/updates response
+      // GET /sync/updates response (cursor-based)
       { ok: true, json: async () => ({ records: [serverRecord], deletedRecordIds: [] }) },
     ]);
 
@@ -129,7 +138,7 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
 
     vi.mocked(getPendingOperations).mockResolvedValue([pendingOp]);
     vi.mocked(markOperationApplied).mockResolvedValue(undefined);
-    vi.mocked(getMetadata).mockResolvedValue('2024-01-01T00:00:00.000Z');
+    vi.mocked(getMetadata).mockResolvedValue('10');
 
     mockFetch([
       { ok: true, json: async () => ({ applied: [{ operationId: 'op-2', recordId: 'rec-del', newVersion: 1 }], rejected: [] }) },
@@ -145,7 +154,7 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
     expect(deleteRecord).toHaveBeenCalledWith('rec-del');
   });
 
-  it('updates the last sync timestamp after a successful pull (Req 7.2)', async () => {
+  it('advances the last cursor after a successful pull (Req 7.2)', async () => {
     const sdk = makeSdk();
 
     vi.mocked(getPendingOperations).mockResolvedValue([
@@ -168,10 +177,10 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
 
     await sdk.sync();
 
-    expect(setMetadata).toHaveBeenCalledWith('lastSyncTime', expect.any(String));
+    expect(setMetadata).toHaveBeenCalledWith('lastCursor', expect.any(String));
   });
 
-  it('uses epoch as since when no lastSyncTime is stored (first sync)', async () => {
+  it('uses cursor=0 when no cursor is stored (first sync)', async () => {
     const sdk = makeSdk();
 
     vi.mocked(getPendingOperations).mockResolvedValue([
@@ -181,7 +190,7 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
       },
     ]);
     vi.mocked(markOperationApplied).mockResolvedValue(undefined);
-    vi.mocked(getMetadata).mockResolvedValue(undefined); // no stored timestamp
+    vi.mocked(getMetadata).mockResolvedValue(undefined); // no stored cursor
 
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ applied: [{ operationId: 'op-4', recordId: 'rec-4', newVersion: 1 }], rejected: [] }) })
@@ -194,14 +203,14 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
 
     await sdk.sync();
 
-    // Second fetch call should be the GET /sync/updates with since=epoch
+    // Second fetch call should be GET /sync/updates?cursor=0
     const secondCall = fetchMock.mock.calls[1];
-    expect(secondCall[0]).toContain(encodeURIComponent(EPOCH));
+    expect(secondCall[0]).toContain('cursor=0');
   });
 
-  it('uses stored lastSyncTime as the since parameter', async () => {
+  it('uses stored cursor as the cursor parameter', async () => {
     const sdk = makeSdk();
-    const storedTime = '2024-06-01T12:00:00.000Z';
+    const storedCursor = '42';
 
     vi.mocked(getPendingOperations).mockResolvedValue([
       {
@@ -210,7 +219,7 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
       },
     ]);
     vi.mocked(markOperationApplied).mockResolvedValue(undefined);
-    vi.mocked(getMetadata).mockResolvedValue(storedTime);
+    vi.mocked(getMetadata).mockResolvedValue(storedCursor);
 
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ applied: [{ operationId: 'op-5', recordId: 'rec-5', newVersion: 1 }], rejected: [] }) })
@@ -224,7 +233,7 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
     await sdk.sync();
 
     const secondCall = fetchMock.mock.calls[1];
-    expect(secondCall[0]).toContain(encodeURIComponent(storedTime));
+    expect(secondCall[0]).toContain('cursor=42');
   });
 });
 
@@ -985,7 +994,9 @@ describe('SyncraSDK — max retries enforcement (task 9.4)', () => {
     const { updateOperation } = await import('./db/queue-store');
     vi.mocked(updateOperation).mockResolvedValue(undefined);
 
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+    globalThis.fetch = vi.fn()
+      .mockRejectedValueOnce(new Error('Network error'))
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ records: [], deletedRecordIds: [] }) });
 
     // First sync — exhausts retries, marks as failed
     await expect(sdk.sync()).rejects.toThrow();
@@ -994,8 +1005,9 @@ describe('SyncraSDK — max retries enforcement (task 9.4)', () => {
     const result = await sdk.sync();
     expect(result).toEqual({ applied: 0, rejected: 0 });
 
-    // fetch should only have been called once (first sync), not on second sync
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    // fetch should have been called: once (rejected) for the first sync push,
+    // once (resolved) for the second sync's pullDelta
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
   });
 
   it('uses default maxRetries of 5 when maxRetries is not set on operation (Req 9.2)', async () => {
@@ -1281,7 +1293,8 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
   });
 
   it('uses auth token when polling job status endpoint', async () => {
-    const sdk = makeSdk(); // makeSdk sets token: 'test-token'
+    // Use bearerToken (no apiKey) to test the Authorization header path
+    const sdk = new SyncraSDK({ baseUrl: 'http://localhost:3000', bearerToken: 'test-token', syncInterval: 0, networkStateManagerOptions: { checkInterval: 0 } });
     const op = makePendingOp();
 
     vi.mocked(getPendingOperations).mockResolvedValue([op]);
@@ -1359,6 +1372,9 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
 
   it('calls sync() at the configured interval while online (Req 10.2)', async () => {
     vi.mocked(getPendingOperations).mockResolvedValue([]);
+    vi.mocked(getMetadata).mockResolvedValue(undefined);
+    vi.mocked(setMetadata).mockResolvedValue(undefined);
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
 
     const sdk = makeOnlineSdk(1000);
 
@@ -1373,6 +1389,9 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
 
   it('uses 30 seconds as the default interval (Req 10.2)', async () => {
     vi.mocked(getPendingOperations).mockResolvedValue([]);
+    vi.mocked(getMetadata).mockResolvedValue(undefined);
+    vi.mocked(setMetadata).mockResolvedValue(undefined);
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
 
     const sdk = makeOnlineSdk(); // no syncInterval → default 30000
 
@@ -1387,6 +1406,9 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
 
   it('does not start periodic sync when syncInterval is 0 (Req 10.2)', async () => {
     vi.mocked(getPendingOperations).mockResolvedValue([]);
+    vi.mocked(getMetadata).mockResolvedValue(undefined);
+    vi.mocked(setMetadata).mockResolvedValue(undefined);
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
 
     const sdk = makeOnlineSdk(0);
 
@@ -1400,6 +1422,9 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
 
   it('stops periodic sync when going offline', async () => {
     vi.mocked(getPendingOperations).mockResolvedValue([]);
+    vi.mocked(getMetadata).mockResolvedValue(undefined);
+    vi.mocked(setMetadata).mockResolvedValue(undefined);
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
 
     const sdk = makeOnlineSdk(1000);
 
@@ -1426,6 +1451,9 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
 
   it('destroy() clears the periodic sync interval', async () => {
     vi.mocked(getPendingOperations).mockResolvedValue([]);
+    vi.mocked(getMetadata).mockResolvedValue(undefined);
+    vi.mocked(setMetadata).mockResolvedValue(undefined);
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
 
     const sdk = makeOnlineSdk(1000);
 

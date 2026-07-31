@@ -63,13 +63,24 @@ export class SyncController {
     @Query() query: Record<string, string>,
     @Req() req: Request & { user: { id: string } },
   ) {
-    const queryDto = plainToInstance(SyncUpdatesQueryDto, query);
+    const queryDto = plainToInstance(SyncUpdatesQueryDto, {
+      cursor: query.cursor !== undefined ? Number(query.cursor) : undefined,
+      limit: query.limit !== undefined ? Number(query.limit) : undefined,
+      collection: query.collection,
+    });
     const errors = await validate(queryDto);
     if (errors.length > 0) {
       throw new BadRequestException(
-        'since must be a valid ISO 8601 timestamp',
+        'cursor must be a non-negative integer',
       );
     }
-    return this.syncService.getSyncUpdates(req.user.id, queryDto.since);
+    const clientId = req.headers['x-client-id'] as string | undefined;
+    return this.syncService.getSyncUpdates(
+      req.user.id,
+      queryDto.cursor,
+      queryDto.limit ?? 1000,
+      clientId,
+      query.collection,
+    );
   }
 }

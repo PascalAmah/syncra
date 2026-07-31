@@ -16,19 +16,24 @@ export class MigrationService implements OnModuleInit {
   }
 
   async runMigrations() {
+    const databaseUrl = this.configService.get<string>('DATABASE_URL');
     const dbHost = this.configService.get<string>('DB_HOST');
     const dbPort = this.configService.get<number>('DB_PORT');
     const dbUser = this.configService.get<string>('DB_USER');
     const dbPass = this.configService.get<string>('DB_PASS');
     const dbName = this.configService.get<string>('DB_NAME');
 
-    this.pool = new Pool({
-      host: dbHost,
-      port: dbPort,
-      user: dbUser,
-      password: dbPass,
-      database: dbName,
-    });
+    if (databaseUrl) {
+      this.pool = new Pool({ connectionString: databaseUrl });
+    } else {
+      this.pool = new Pool({
+        host: dbHost,
+        port: dbPort,
+        user: dbUser,
+        password: dbPass,
+        database: dbName,
+      });
+    }
 
     this.logger.log('Running database migrations...');
 

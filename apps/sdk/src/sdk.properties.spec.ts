@@ -44,6 +44,15 @@ import { getMetadata, setMetadata } from './db/metadata-store';
 import { SyncraSDK } from './syncra-sdk';
 import { calculateRetryDelay } from './retry';
 
+// Default fetch mock — returns empty delta so tests that don't explicitly
+// mock fetch won't crash on pullDelta(). Individual tests override as needed.
+beforeEach(() => {
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }),
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -597,13 +606,17 @@ describe('Feature: syncra-offline-sync-engine, Property 26: Max Retries Enforcem
           vi.mocked(getPendingOperations).mockResolvedValue([op]);
           vi.mocked(updateOperation).mockResolvedValue(undefined);
 
-          globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+          globalThis.fetch = vi.fn()
+            .mockRejectedValueOnce(new Error('Network error'))
+            .mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
 
           const sdk = makeOnlineSdk();
           const failedEvents: unknown[] = [];
           sdk.on('sync-failed', (e) => failedEvents.push(e));
 
           try { await sdk.sync(); } catch { /* expected */ }
+
+          sdk.destroy();
 
           const updateCalls = vi.mocked(updateOperation).mock.calls;
           const markedFailed = updateCalls.some(
@@ -652,6 +665,9 @@ describe('Feature: syncra-offline-sync-engine, Property 29: Auto-Sync on Online'
     fc.assert(
       fc.property(fc.boolean(), (_unused) => {
         vi.mocked(getPendingOperations).mockResolvedValue([]);
+        vi.mocked(getMetadata).mockResolvedValue(undefined);
+        vi.mocked(setMetadata).mockResolvedValue(undefined);
+        globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
 
         // Start offline
         setupBrowserEnv(false);
@@ -698,6 +714,9 @@ describe('Feature: syncra-offline-sync-engine, Property 30: Periodic Sync Execut
         fc.integer({ min: 100, max: 5000 }),
         async (interval) => {
           vi.mocked(getPendingOperations).mockResolvedValue([]);
+          vi.mocked(getMetadata).mockResolvedValue(undefined);
+          vi.mocked(setMetadata).mockResolvedValue(undefined);
+          globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
 
           setupBrowserEnv(true);
           const sdk = new SyncraSDK({

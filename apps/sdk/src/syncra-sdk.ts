@@ -8,7 +8,8 @@ import { STORE_NAMES } from './db/schema';
 import { calculateNextRetryAt, calculateRetryDelay, MAX_RETRIES } from './retry';
 import { NetworkStateManager, NetworkStateManagerOptions } from './network-state-manager';
 
-const LAST_SYNC_TIME_KEY = 'lastSyncTime';
+const LAST_CURSOR_KEY = 'lastCursor';
+const CLIENT_ID_KEY = 'clientId';
 
 export interface LocalRecord {
   id: string;
@@ -16,6 +17,7 @@ export interface LocalRecord {
   version: number;
   updatedAt: Date;
   createdAt: Date;
+  collection?: string;
 }
 
 export interface LocalQueuedOperation {
@@ -29,6 +31,7 @@ export interface LocalQueuedOperation {
   retries: number;
   createdAt: Date;
   nextRetryAt?: Date;
+  collection?: string;
 }
 
 export interface LocalConflict {
@@ -72,6 +75,8 @@ export class SyncraSDK {
   private userId: string | null = null;
   /** Optional JWT bearer token for user-authenticated requests */
   private bearerToken: string | null = null;
+  /** Persistent client identifier, generated once and stored in IndexedDB */
+  private clientId: string | null = null;
 
   constructor(options: { baseUrl?: string; apiKey?: string; userId?: string; bearerToken?: string; syncInterval?: number; networkStateManagerOptions?: NetworkStateManagerOptions } = {}) {
     this.baseUrl = options.baseUrl ?? '';
@@ -115,6 +120,11 @@ export class SyncraSDK {
     this.bearerToken = token;
   }
 
+  /** Get a namespaced Collection handle for scoped record operations (Phase 5) */
+  collection(name: string): Collection {
+    return new Collection(this, name);
+  }
+
   // ---------------------------------------------------------------------------
   // Event emitter helpers
   // ---------------------------------------------------------------------------
@@ -149,6 +159,14 @@ export class SyncraSDK {
    * across app restarts.
    */
   async initialize(): Promise<void> {
+    // Restore or generate persistent client identity (Phase 4)
+    let storedClientId = await getMetadata(CLIENT_ID_KEY);
+    if (!storedClientId) {
+      storedClientId = uuidv4();
+      await setMetadata(CLIENT_ID_KEY, storedClientId);
+    }
+    this.clientId = storedClientId;
+
     const pending = await getPendingOperations();
     for (const op of pending) {
       this.queue.set(op.id, {
@@ -162,6 +180,7 @@ export class SyncraSDK {
         retries: op.retries,
         createdAt: op.createdAt,
         nextRetryAt: op.nextRetryAt,
+        collection: op.collection,
       });
     }
 
@@ -175,6 +194,7 @@ export class SyncraSDK {
         version: r.version,
         updatedAt: new Date(r.updated_at),
         createdAt: new Date(r.created_at),
+        collection: r.collection,
       });
     }
   }
@@ -198,7 +218,7 @@ export class SyncraSDK {
     this.stopPeriodicSync();
   }
 
-  async createRecord(data: Record<string, unknown>): Promise<LocalRecord> {
+  async createRecord(data: Record<string, unknown>, collection: string = 'default'): Promise<LocalRecord> {
     const id = uuidv4();
     const now = new Date();
     const nowIso = now.toISOString();
@@ -209,6 +229,7 @@ export class SyncraSDK {
       version: 1,
       updatedAt: now,
       createdAt: now,
+      collection,
     };
 
     // Persist record to IndexedDB
@@ -218,6 +239,7 @@ export class SyncraSDK {
       version: 1,
       updated_at: nowIso,
       created_at: nowIso,
+      collection,
     });
 
     this.records.set(id, record);
@@ -235,6 +257,7 @@ export class SyncraSDK {
       status: 'pending',
       retries: 0,
       createdAt: now,
+      collection,
     };
 
     // Persist operation to IndexedDB offline queue
@@ -249,6 +272,7 @@ export class SyncraSDK {
       retries: 0,
       maxRetries: 5,
       createdAt: now,
+      collection,
     });
 
     this.queue.set(operation.id, operation);
@@ -256,7 +280,7 @@ export class SyncraSDK {
     return record;
   }
 
-  async updateRecord(id: string, data: Record<string, unknown>): Promise<LocalRecord> {
+  async updateRecord(id: string, data: Record<string, unknown>, collection: string = 'default'): Promise<LocalRecord> {
     // Fetch from IndexedDB first, fall back to in-memory cache
     const storedRecord = await getRecord(id);
     if (!storedRecord) {
@@ -274,6 +298,7 @@ export class SyncraSDK {
       version: currentVersion + 1,
       updated_at: nowIso,
       created_at: storedRecord.created_at,
+      collection,
     });
 
     const updatedRecord: LocalRecord = {
@@ -282,6 +307,7 @@ export class SyncraSDK {
       version: currentVersion + 1,
       updatedAt: now,
       createdAt: new Date(storedRecord.created_at),
+      collection,
     };
 
     this.records.set(id, updatedRecord);
@@ -301,6 +327,7 @@ export class SyncraSDK {
       retries: 0,
       maxRetries: 5,
       createdAt: now,
+      collection,
     });
 
     const operation: LocalQueuedOperation = {
@@ -313,6 +340,7 @@ export class SyncraSDK {
       status: 'pending',
       retries: 0,
       createdAt: now,
+      collection,
     };
 
     this.queue.set(operation.id, operation);
@@ -320,7 +348,7 @@ export class SyncraSDK {
     return updatedRecord;
   }
 
-  async deleteRecord(id: string): Promise<void> {
+  async deleteRecord(id: string, collection: string = 'default'): Promise<void> {
     // Fetch from IndexedDB first, fall back to in-memory cache
     const storedRecord = await getRecord(id);
     if (!storedRecord) {
@@ -349,6 +377,7 @@ export class SyncraSDK {
       retries: 0,
       maxRetries: 5,
       createdAt: now,
+      collection,
     });
 
     const operation: LocalQueuedOperation = {
@@ -361,6 +390,7 @@ export class SyncraSDK {
       status: 'pending',
       retries: 0,
       createdAt: now,
+      collection,
     };
 
     this.queue.set(operation.id, operation);
@@ -393,18 +423,12 @@ export class SyncraSDK {
           payload: op.payload,
           version: op.version,
           idempotencyKey: op.idempotencyKey,
+          collection: op.collection,
         })),
       };
 
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (this.apiKey) {
-        headers['x-api-key'] = this.apiKey;
-      } else if (this.bearerToken) {
-        headers['Authorization'] = `Bearer ${this.bearerToken}`;
-      }
-      if (this.userId) {
-        headers['x-user-id'] = this.userId;
-      }
+      const headers = this.buildHeaders();
+      headers['Content-Type'] = 'application/json';
 
       const response = await fetch(`${this.baseUrl}/sync`, {
         method: 'POST',
@@ -461,31 +485,33 @@ export class SyncraSDK {
 
         this.emit('conflict', conflict);
 
-        if (this.conflictHandler) {
-          const resolved = this.conflictHandler(conflict);
-          const existing = await getRecord(rejected.recordId);
-          if (existing) {
-            await upsertRecord({
-              ...existing,
-              data: resolved.data as Record<string, any>,
-              version: resolved.version,
-              updated_at: new Date().toISOString(),
-            });
-          }
-          // Re-enqueue an update operation with the resolved data
-          const newOpId = uuidv4();
-          await enqueueOperation({
-            id: newOpId,
-            type: 'update',
-            recordId: rejected.recordId,
-            payload: resolved.data as Record<string, any>,
-            version: resolved.version,
-            idempotencyKey: uuidv4(),
-            status: 'pending',
-            retries: 0,
-            maxRetries: 5,
-            createdAt: new Date(),
-          });
+	        if (this.conflictHandler) {
+	          const resolved = this.conflictHandler(conflict);
+	          const existing = await getRecord(rejected.recordId);
+	          const opCollection = pendingOperations.find((op) => op.id === rejected.operationId)?.collection ?? 'default';
+	          if (existing) {
+	            await upsertRecord({
+	              ...existing,
+	              data: resolved.data as Record<string, any>,
+	              version: resolved.version,
+	              updated_at: new Date().toISOString(),
+	            });
+	          }
+	          // Re-enqueue an update operation with the resolved data
+	          const newOpId = uuidv4();
+	          await enqueueOperation({
+	            id: newOpId,
+	            type: 'update',
+	            recordId: rejected.recordId,
+	            payload: resolved.data as Record<string, any>,
+	            version: resolved.version,
+	            idempotencyKey: uuidv4(),
+	            status: 'pending',
+	            retries: 0,
+	            maxRetries: 5,
+	            createdAt: new Date(),
+	            collection: opCollection,
+	          });
         } else {
           const existing = await getRecord(rejected.recordId);
           if (existing) {
@@ -529,15 +555,7 @@ export class SyncraSDK {
   private async pollJobStatus(
     jobId: string,
   ): Promise<SyncPushResponse> {
-    const headers: Record<string, string> = {};
-    if (this.apiKey) {
-      headers['x-api-key'] = this.apiKey;
-    } else if (this.bearerToken) {
-      headers['Authorization'] = `Bearer ${this.bearerToken}`;
-    }
-    if (this.userId) {
-      headers['x-user-id'] = this.userId;
-    }
+    const headers = this.buildHeaders();
 
     let pollAttempt = 0;
 
@@ -604,14 +622,10 @@ export class SyncraSDK {
   }
 
   /**
-   * Pulls delta updates from the server since the last sync timestamp,
-   * upserts returned records into the local database, removes deleted records,
-   * and updates the last sync timestamp.
+   * Builds a headers object for authenticated API requests.
+   * Includes x-api-key (or Authorization) and optional x-user-id.
    */
-  private async pullDelta(): Promise<void> {
-    const lastSyncTime = await getMetadata(LAST_SYNC_TIME_KEY);
-    const since = lastSyncTime ?? new Date(0).toISOString();
-
+  private buildHeaders(): Record<string, string> {
     const headers: Record<string, string> = {};
     if (this.apiKey) {
       headers['x-api-key'] = this.apiKey;
@@ -621,39 +635,85 @@ export class SyncraSDK {
     if (this.userId) {
       headers['x-user-id'] = this.userId;
     }
+    if (this.clientId) {
+      headers['x-client-id'] = this.clientId;
+    }
+    return headers;
+  }
 
-    const response = await fetch(
-      `${this.baseUrl}/sync/updates?since=${encodeURIComponent(since)}`,
-      { headers },
-    );
+  /**
+   * Pulls delta updates from the server since the last known cursor,
+   * upserts returned records into the local database, removes deleted records,
+   * and advances the cursor to the highest seen value.
+   *
+   * Uses a monotonic cursor (BIGINT) instead of wall-clock timestamps
+   * to guarantee no records are missed due to clock skew between client
+   * and server (Phase 1).
+   *
+   * Pages through results in chunks of PAGE_SIZE, continuing until both
+   * records and tombstones return fewer than a full page.
+   */
+  private async pullDelta(): Promise<void> {
+    const lastCursorStr = await getMetadata(LAST_CURSOR_KEY);
+    let cursor = lastCursorStr ? Number(lastCursorStr) : 0;
+    const headers = this.buildHeaders();
+    const PAGE_SIZE = 500;
+    let maxCursor = cursor;
 
-    if (!response.ok) {
-      throw new Error(`Delta pull failed with status ${response.status}`);
+    while (true) {
+      const response = await fetch(
+        `${this.baseUrl}/sync/updates?cursor=${cursor}&limit=${PAGE_SIZE}`,
+        { headers },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Delta pull failed with status ${response.status}`);
+      }
+
+      const delta: SyncPullResponse = await response.json();
+
+      // Upsert each returned record into local database
+      for (const record of delta.records) {
+        await upsertRecord(record);
+        this.records.set(record.id, {
+          id: record.id,
+          data: record.data as Record<string, unknown>,
+          version: record.version,
+          updatedAt: new Date(record.updated_at),
+          createdAt: new Date(record.created_at),
+          collection: record.collection,
+        });
+        if (record.cursor !== undefined && record.cursor > maxCursor) {
+          maxCursor = record.cursor;
+        }
+      }
+
+      // Remove each deleted record from local database (Requirement 7.2.3)
+      for (const deletedId of delta.deletedRecordIds) {
+        await deleteRecordFromStore(deletedId);
+        this.records.delete(deletedId);
+      }
+
+      // Track tombstone cursors so the client advances past deletions (Phase 2)
+      if (delta.tombstones) {
+        for (const t of delta.tombstones) {
+          if (t.cursor > maxCursor) {
+            maxCursor = t.cursor;
+          }
+        }
+      }
+
+      // Break when both records and tombstones are below a full page
+      if (delta.records.length < PAGE_SIZE && (!delta.tombstones || delta.tombstones.length < PAGE_SIZE)) {
+        break;
+      }
+
+      // Advance cursor for next page
+      cursor = maxCursor;
     }
 
-    const delta: SyncPullResponse = await response.json();
-
-    // Upsert each returned record into local database
-    for (const record of delta.records) {
-      await upsertRecord(record);
-      // Also update in-memory map so getRecords() reflects the latest state
-      this.records.set(record.id, {
-        id: record.id,
-        data: record.data as Record<string, unknown>,
-        version: record.version,
-        updatedAt: new Date(record.updated_at),
-        createdAt: new Date(record.created_at),
-      });
-    }
-
-    // Remove each deleted record from local database (Requirement 7.2.3)
-    for (const deletedId of delta.deletedRecordIds) {
-      await deleteRecordFromStore(deletedId);
-      this.records.delete(deletedId);
-    }
-
-    // Update last sync timestamp
-    await setMetadata(LAST_SYNC_TIME_KEY, new Date().toISOString());
+    // Advance cursor to the highest seen value
+    await setMetadata(LAST_CURSOR_KEY, String(maxCursor));
   }
 
   /** Helper to update the in-memory queue entry status */
@@ -664,8 +724,12 @@ export class SyncraSDK {
     }
   }
 
-  getRecords(): LocalRecord[] {
-    return Array.from(this.records.values());
+  getRecords(collection?: string): LocalRecord[] {
+    const all = Array.from(this.records.values());
+    if (collection !== undefined) {
+      return all.filter((r) => r.collection === collection);
+    }
+    return all;
   }
 
   getPendingOperations(): LocalQueuedOperation[] {
@@ -674,5 +738,28 @@ export class SyncraSDK {
 
   isOnlineState(): boolean {
     return this.isOnline;
+  }
+}
+
+export class Collection {
+  constructor(
+    private sdk: SyncraSDK,
+    readonly name: string,
+  ) {}
+
+  async create(data: Record<string, unknown>): Promise<LocalRecord> {
+    return this.sdk.createRecord(data, this.name);
+  }
+
+  async update(id: string, data: Record<string, unknown>): Promise<LocalRecord> {
+    return this.sdk.updateRecord(id, data, this.name);
+  }
+
+  async delete(id: string): Promise<void> {
+    return this.sdk.deleteRecord(id, this.name);
+  }
+
+  list(): LocalRecord[] {
+    return this.sdk.getRecords(this.name);
   }
 }

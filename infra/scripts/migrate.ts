@@ -4,19 +4,22 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 async function runMigrations() {
+  const databaseUrl = process.env.DATABASE_URL;
   const dbHost = process.env.DB_HOST || 'localhost';
   const dbPort = parseInt(process.env.DB_PORT || '5432', 10);
   const dbUser = process.env.DB_USER || 'syncra';
   const dbPass = process.env.DB_PASS || 'syncra123';
   const dbName = process.env.DB_NAME || 'syncra';
 
-  const pool = new Pool({
-    host: dbHost,
-    port: dbPort,
-    user: dbUser,
-    password: dbPass,
-    database: dbName,
-  });
+  const pool = databaseUrl
+    ? new Pool({ connectionString: databaseUrl })
+    : new Pool({
+        host: dbHost,
+        port: dbPort,
+        user: dbUser,
+        password: dbPass,
+        database: dbName,
+      });
 
   console.log('Running database migrations...');
 

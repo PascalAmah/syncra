@@ -142,23 +142,26 @@ pnpm run start:dev
 
 ## Environment Variables
 
-Create `apps/api/.env` with the following:
+Create `apps/api/.env` with the following. You can connect to the database **either** with a single connection string **or** the individual component variables: both are supported; `DATABASE_URL` takes priority when present.
 
 ```env
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASS=postgres
-DB_NAME=syncra
+# Database — choose ONE of the two options below
+
+# Option A: single connection string (recommended for cloud deployments)
+DATABASE_URL=postgresql://user:password@host:5432/syncra_db
+
+# Option B: individual component variables (e.g. local Docker compose)
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_USER=postgres
+# DB_PASS=postgres
+# DB_NAME=syncra
 
 # Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
+REDIS_URL=redis://localhost:6379
 
 # Auth
 JWT_SECRET=your-secret-here
-JWT_EXPIRES_IN=7d
 
 # App
 PORT=3000

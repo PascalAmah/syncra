@@ -1,16 +1,50 @@
 import { z } from 'zod';
 
-const envSchema = z.object({
-  DB_HOST: z.string().min(1),
-  DB_PORT: z.coerce.number().positive(),
-  DB_USER: z.string().min(1),
-  DB_PASS: z.string().min(1),
-  DB_NAME: z.string().min(1),
-  REDIS_URL: z.string().url(),
-  JWT_SECRET: z.string().min(1),
-  PORT: z.coerce.number().positive().optional().default(3000),
-  NODE_ENV: z.enum(['development', 'production', 'test']).optional().default('development'),
+// Database connection accepts either a single DATABASE_URL string
+// (e.g. postgresql://user:pass@host:5432/db) or the individual DB_*
+// component variables as a fallback. Exactly one of the two is required.
+const databaseFields = z.object({
+  DATABASE_URL: z.string().min(1).optional(),
+  DB_HOST: z.string().min(1).optional(),
+  DB_PORT: z.coerce.number().positive().optional(),
+  DB_USER: z.string().min(1).optional(),
+  DB_PASS: z.string().min(1).optional(),
+  DB_NAME: z.string().min(1).optional(),
 });
+
+const envSchema = databaseFields
+  .extend({
+    REDIS_URL: z.string().url(),
+    JWT_SECRET: z.string().min(1),
+    PORT: z
+      .coerce.number()
+      .positive()
+      .optional()
+      .default(3000),
+    NODE_ENV: z
+      .enum(['development', 'production', 'test'])
+      .optional()
+      .default('development'),
+  })
+  .superRefine((env, ctx) => {
+    const hasUrl = !!env.DATABASE_URL;
+    const hasAllComponents = [
+      env.DB_HOST,
+      env.DB_PORT,
+      env.DB_USER,
+      env.DB_PASS,
+      env.DB_NAME,
+    ].every((v) => v !== undefined);
+
+    if (!hasUrl && !hasAllComponents) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['DATABASE_URL'],
+        message:
+          'Missing database connection: set DATABASE_URL or all of DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME',
+      });
+    }
+  });
 
 export type EnvConfig = z.infer<typeof envSchema>;
 
