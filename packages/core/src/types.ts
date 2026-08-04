@@ -120,6 +120,7 @@ export interface AuthResponse {
   email: string;
   token: string;
   expiresIn?: number;
+  refreshToken?: string;
 }
 
 /**

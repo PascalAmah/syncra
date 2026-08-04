@@ -19,7 +19,7 @@ const operationArb = fc.record({
   recordId: fc.uuid(),
   payload: fc.dictionary(
     fc.string({ minLength: 1, maxLength: 20 }),
-    fc.oneof(fc.string(), fc.integer(), fc.boolean(), fc.constant(null)),
+    fc.oneof(fc.string(), fc.integer(), fc.boolean(), fc.constant(null))
   ),
   version: fc.integer({ min: 1, max: 10000 }),
   idempotencyKey: fc.uuid(),
@@ -28,13 +28,13 @@ const operationArb = fc.record({
 // Use integer timestamps to avoid invalid Date edge cases during shrinking
 const isoDateArb = fc
   .integer({ min: 1577836800000, max: 1893456000000 }) // 2020-01-01 to 2030-01-01
-  .map((ms) => new Date(ms).toISOString());
+  .map(ms => new Date(ms).toISOString());
 
 const recordArb = fc.record({
   id: fc.uuid(),
   data: fc.dictionary(
     fc.string({ minLength: 1, maxLength: 20 }),
-    fc.oneof(fc.string(), fc.integer(), fc.boolean(), fc.constant(null)),
+    fc.oneof(fc.string(), fc.integer(), fc.boolean(), fc.constant(null))
   ),
   version: fc.integer({ min: 1, max: 10000 }),
   updated_at: isoDateArb,
@@ -49,7 +49,7 @@ const recordArb = fc.record({
 describe('Feature: syncra-offline-sync-engine, Property 35: Operation Serialization Round-Trip', () => {
   it('should produce an object deeply equal to the original after serialize then deserialize', () => {
     fc.assert(
-      fc.property(operationArb, (op) => {
+      fc.property(operationArb, op => {
         const json = opSerializer.serialize(op);
         const result = opSerializer.deserialize(json);
         // Deep equality check
@@ -61,7 +61,7 @@ describe('Feature: syncra-offline-sync-engine, Property 35: Operation Serializat
         if (JSON.stringify(result.payload) !== JSON.stringify(op.payload)) return false;
         return true;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -74,7 +74,7 @@ describe('Feature: syncra-offline-sync-engine, Property 35: Operation Serializat
 describe('Feature: syncra-offline-sync-engine, Property 36: Record Serialization Round-Trip', () => {
   it('should produce an object deeply equal to the original after serialize then deserialize', () => {
     fc.assert(
-      fc.property(recordArb, (record) => {
+      fc.property(recordArb, record => {
         const json = recSerializer.serialize(record);
         const result = recSerializer.deserialize(json);
         if (result.id !== record.id) return false;
@@ -85,7 +85,7 @@ describe('Feature: syncra-offline-sync-engine, Property 36: Record Serialization
         if (JSON.stringify(result.data) !== JSON.stringify(record.data)) return false;
         return true;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });

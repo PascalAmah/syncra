@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "test": "vitest run",
-    "lint": "eslint 'src/**/*.ts'",
+    "lint": "eslint src/**/*.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -18,7 +18,10 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",
+    "eslint-config-prettier": "9",
+    "eslint-plugin-prettier": "5",
     "fast-check": "^4.6.0",
+    "prettier": "3",
     "vitest": "^1.0.0"
   }
 }

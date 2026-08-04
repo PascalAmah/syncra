@@ -13,16 +13,13 @@ export interface HealthStatus {
 export class HealthService {
   constructor(
     private readonly databaseService: DatabaseService,
-    private readonly syncQueueService: SyncQueueService,
+    private readonly syncQueueService: SyncQueueService
   ) {}
 
   async check(): Promise<HealthStatus> {
     const timestamp = new Date().toISOString();
 
-    const [dbHealth, redisHealth] = await Promise.all([
-      this.checkDatabase(),
-      this.checkRedis(),
-    ]);
+    const [dbHealth, redisHealth] = await Promise.all([this.checkDatabase(), this.checkRedis()]);
 
     const allHealthy = dbHealth && redisHealth;
 
@@ -46,18 +43,6 @@ export class HealthService {
   }
 
   private async checkRedis(): Promise<boolean> {
-    try {
-      const connection = this.syncQueueService['connection'] as {
-        ping: () => Promise<string>;
-        status: string;
-      } | null;
-      if (!connection || connection.status !== 'ready') {
-        return false;
-      }
-      const result = await connection.ping();
-      return result === 'PONG';
-    } catch {
-      return false;
-    }
+    return this.syncQueueService.isRedisHealthy();
   }
 }

@@ -36,10 +36,10 @@ describe('SyncService', () => {
       const result = await service.checkIdempotency('user-1', 'key-abc');
 
       expect(result).toBeNull();
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('sync_operations'),
-        ['user-1', 'key-abc'],
-      );
+      expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('sync_operations'), [
+        'user-1',
+        'key-abc',
+      ]);
     });
 
     it('returns cached OperationResult when applied operation exists', async () => {
@@ -276,7 +276,7 @@ describe('SyncService', () => {
         .mockResolvedValueOnce(undefined); // ROLLBACK
 
       const op = makeOp({ version: 2 });
-      const err = await service.applyOperation('user-1', op).catch((e) => e);
+      const err = await service.applyOperation('user-1', op).catch(e => e);
 
       expect(err).toBeInstanceOf(VersionConflictError);
       expect(err.conflict).toEqual({
@@ -302,9 +302,7 @@ describe('SyncService', () => {
         .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations (rejected)
         .mockResolvedValueOnce(undefined); // ROLLBACK
 
-      const err = await service
-        .applyOperation('user-1', makeOp({ version: 1 }))
-        .catch((e) => e);
+      const err = await service.applyOperation('user-1', makeOp({ version: 1 })).catch(e => e);
 
       expect(err).toBeInstanceOf(VersionConflictError);
       expect(err.conflict.serverData).toEqual({});
@@ -558,10 +556,7 @@ describe('SyncService', () => {
         .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations
         .mockResolvedValueOnce(undefined); // COMMIT
 
-      const result = await service.applyOperation(
-        'user-1',
-        makeOp({ type: 'update', version: 3 }),
-      );
+      const result = await service.applyOperation('user-1', makeOp({ type: 'update', version: 3 }));
 
       expect(mockClientQuery).toHaveBeenCalledTimes(7);
       expect(mockClientQuery.mock.calls[0][0]).toBe('BEGIN');
@@ -570,25 +565,42 @@ describe('SyncService', () => {
       expect(result.data).toEqual({ title: 'Test' });
     });
 
-    it('wraps delete in a transaction: BEGIN, SELECT FOR UPDATE, DELETE record, INSERT tombstone, INSERT sync_op, COMMIT', async () => {
+    it('wraps delete in a transaction: BEGIN, SELECT FOR UPDATE, DELETE record, INSERT tombstone, DELETE versions, INSERT sync_op, COMMIT', async () => {
       mockClientQuery
         .mockResolvedValueOnce(undefined) // BEGIN
         .mockResolvedValueOnce({ rows: [{ version: 2 }] }) // SELECT FOR UPDATE — match
         .mockResolvedValueOnce({ rows: [{ version: 2 }] }) // DELETE records
         .mockResolvedValueOnce({ rows: [] }) // INSERT tombstones
+        .mockResolvedValueOnce({ rows: [] }) // DELETE versions (record no longer exists)
         .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations
         .mockResolvedValueOnce(undefined); // COMMIT
 
-      const result = await service.applyOperation(
-        'user-1',
-        makeOp({ type: 'delete', version: 2 }),
-      );
+      const result = await service.applyOperation('user-1', makeOp({ type: 'delete', version: 2 }));
 
-      expect(mockClientQuery).toHaveBeenCalledTimes(6);
+      expect(mockClientQuery).toHaveBeenCalledTimes(7);
       expect(mockClientQuery.mock.calls[0][0]).toBe('BEGIN');
-      expect(mockClientQuery.mock.calls[5][0]).toBe('COMMIT');
+      expect(mockClientQuery.mock.calls[4][0]).toBe('DELETE FROM versions WHERE record_id = $1');
+      expect(mockClientQuery.mock.calls[6][0]).toBe('COMMIT');
       expect(result.newVersion).toBe(2);
       expect(result.data).toBeUndefined();
+    });
+
+    it('does not insert a tombstone or version cleanup when deleting a missing record', async () => {
+      mockClientQuery
+        .mockResolvedValueOnce(undefined) // BEGIN
+        .mockResolvedValueOnce({ rows: [] }) // SELECT FOR UPDATE — no version row (missing)
+        .mockResolvedValueOnce({ rows: [] }) // DELETE records — nothing deleted
+        .mockResolvedValueOnce({ rows: [] }) // INSERT sync_operations
+        .mockResolvedValueOnce(undefined); // COMMIT
+
+      const result = await service.applyOperation('user-1', makeOp({ type: 'delete', version: 1 }));
+
+      // No tombstone insert and no versions cleanup because the record did not exist.
+      expect(mockClientQuery).toHaveBeenCalledTimes(5);
+      const sqlCalls = mockClientQuery.mock.calls.map((c: any[]) => c[0]);
+      expect(sqlCalls.filter(s => s.includes('INSERT INTO tombstones'))).toHaveLength(0);
+      expect(sqlCalls.filter(s => s.includes('DELETE FROM versions'))).toHaveLength(0);
+      expect(result.newVersion).toBe(0);
     });
 
     it('rolls back and releases client on error', async () => {
@@ -597,11 +609,9 @@ describe('SyncService', () => {
         .mockRejectedValueOnce(new Error('DB error')) // INSERT records fails
         .mockResolvedValueOnce(undefined); // ROLLBACK (in catch block)
 
-      await expect(
-        service.applyOperation('user-1', makeOp()),
-      ).rejects.toThrow('DB error');
+      await expect(service.applyOperation('user-1', makeOp())).rejects.toThrow('DB error');
 
-      const calls = mockClientQuery.mock.calls.map((c) => c[0]);
+      const calls = mockClientQuery.mock.calls.map(c => c[0]);
       expect(calls).toContain('BEGIN');
       expect(calls).toContain('ROLLBACK');
       expect(calls).not.toContain('COMMIT');

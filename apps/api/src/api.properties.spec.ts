@@ -52,7 +52,7 @@ function makeSyncQueueService(overrides: Record<string, any> = {}) {
   return {
     enqueue: vi.fn().mockResolvedValue('job-123'),
     getJobStatus: vi.fn().mockResolvedValue({ jobId: 'job-123', status: 'queued' }),
-    connection: { ping: vi.fn().mockResolvedValue('PONG'), status: 'ready' },
+    isRedisHealthy: vi.fn().mockResolvedValue(true),
     ...overrides,
   } as any;
 }
@@ -62,11 +62,11 @@ function makeSyncQueueService(overrides: Record<string, any> = {}) {
 // ---------------------------------------------------------------------------
 
 const emailArb = fc.emailAddress();
-const passwordArb = fc.string({ minLength: 8, maxLength: 64 }).filter((s) => s.length >= 8);
+const passwordArb = fc.string({ minLength: 8, maxLength: 64 }).filter(s => s.length >= 8);
 const shortPasswordArb = fc.string({ minLength: 1, maxLength: 7 });
 const dataArb = fc.dictionary(
   fc.string({ minLength: 1, maxLength: 15 }),
-  fc.oneof(fc.string({ maxLength: 50 }), fc.integer({ min: 0, max: 9999 }), fc.boolean()),
+  fc.oneof(fc.string({ maxLength: 50 }), fc.integer({ min: 0, max: 9999 }), fc.boolean())
 );
 const uuidArb = fc.uuid();
 
@@ -76,7 +76,9 @@ const uuidArb = fc.uuid();
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 1: Email Uniqueness Constraint', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should throw ConflictException (409) when registering with a duplicate email', async () => {
     await fc.assert(
@@ -87,7 +89,7 @@ describe('Feature: syncra-offline-sync-engine, Property 1: Email Uniqueness Cons
         // Simulate PostgreSQL unique violation (code 23505)
         db.query.mockRejectedValue({ code: '23505' });
 
-        const service = new AuthService(db, makeJwtService());
+        const service = new AuthService(db, makeJwtService(), makeConfigService());
         try {
           await service.register({ email, password });
           return false; // Should have thrown
@@ -95,7 +97,7 @@ describe('Feature: syncra-offline-sync-engine, Property 1: Email Uniqueness Cons
           return err instanceof ConflictException;
         }
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -106,7 +108,9 @@ describe('Feature: syncra-offline-sync-engine, Property 1: Email Uniqueness Cons
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 2: Foreign Key Constraint Enforcement', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should propagate DB constraint violation when user_id does not exist', async () => {
     await fc.assert(
@@ -123,7 +127,7 @@ describe('Feature: syncra-offline-sync-engine, Property 2: Foreign Key Constrain
           return err?.code === '23503';
         }
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -134,7 +138,9 @@ describe('Feature: syncra-offline-sync-engine, Property 2: Foreign Key Constrain
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 3: Record Updated Timestamp', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should set updated_at to a time >= the time before the update request', async () => {
     await fc.assert(
@@ -144,13 +150,15 @@ describe('Feature: syncra-offline-sync-engine, Property 3: Record Updated Timest
 
         const db = makeDb();
         db.query.mockResolvedValue({
-          rows: [{
-            id: 'rec-1',
-            data,
-            version: 1,
-            updated_at: updatedAt,
-            created_at: updatedAt,
-          }],
+          rows: [
+            {
+              id: 'rec-1',
+              data,
+              version: 1,
+              updated_at: updatedAt,
+              created_at: updatedAt,
+            },
+          ],
         });
 
         const service = new RecordsService(db);
@@ -158,7 +166,7 @@ describe('Feature: syncra-offline-sync-engine, Property 3: Record Updated Timest
 
         return new Date(record.updated_at) >= beforeUpdate;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -169,7 +177,9 @@ describe('Feature: syncra-offline-sync-engine, Property 3: Record Updated Timest
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 4: User Registration Creates User', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should return user id and email after successful registration', async () => {
     await fc.assert(
@@ -179,11 +189,11 @@ describe('Feature: syncra-offline-sync-engine, Property 4: User Registration Cre
         db.query.mockResolvedValue({ rows: [{ id: userId, email }] });
         vi.mocked(bcrypt.hash).mockResolvedValue('hashed' as never);
 
-        const service = new AuthService(db, makeJwtService());
+        const service = new AuthService(db, makeJwtService(), makeConfigService());
         const result = await service.register({ email, password });
         return result.id === userId && result.email === email;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -196,12 +206,12 @@ describe('Feature: syncra-offline-sync-engine, Property 4: User Registration Cre
 describe('Feature: syncra-offline-sync-engine, Property 5: Password Validation', () => {
   it('should reject passwords shorter than 8 characters at the DTO validation level', () => {
     fc.assert(
-      fc.property(shortPasswordArb, (password) => {
+      fc.property(shortPasswordArb, password => {
         // The MinLength(8) decorator on RegisterDto enforces this.
         // We verify the constraint directly.
         return password.length < 8;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -212,7 +222,9 @@ describe('Feature: syncra-offline-sync-engine, Property 5: Password Validation',
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 6: Login Returns Valid JWT', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should return a JWT token for valid credentials', async () => {
     await fc.assert(
@@ -225,11 +237,11 @@ describe('Feature: syncra-offline-sync-engine, Property 6: Login Returns Valid J
         const jwtService = makeJwtService();
         jwtService.sign.mockReturnValue('signed.jwt.token');
 
-        const service = new AuthService(db, jwtService);
+        const service = new AuthService(db, jwtService, makeConfigService());
         const result = await service.login({ email, password });
         return typeof result.token === 'string' && result.token.length > 0;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -240,7 +252,9 @@ describe('Feature: syncra-offline-sync-engine, Property 6: Login Returns Valid J
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 7: Invalid Credentials Rejected', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should throw UnauthorizedException for wrong password', async () => {
     await fc.assert(
@@ -250,7 +264,7 @@ describe('Feature: syncra-offline-sync-engine, Property 7: Invalid Credentials R
         // Mock bcrypt.compare to return false (wrong password)
         vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
 
-        const service = new AuthService(db, makeJwtService());
+        const service = new AuthService(db, makeJwtService(), makeConfigService());
         try {
           await service.login({ email, password });
           return false;
@@ -258,7 +272,7 @@ describe('Feature: syncra-offline-sync-engine, Property 7: Invalid Credentials R
           return err instanceof UnauthorizedException;
         }
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -271,28 +285,25 @@ describe('Feature: syncra-offline-sync-engine, Property 7: Invalid Credentials R
 describe('Feature: syncra-offline-sync-engine, Property 8: Unauthenticated Requests Rejected', () => {
   it('should throw UnauthorizedException when no Authorization header is present', () => {
     fc.assert(
-      fc.property(
-        fc.string({ minLength: 0, maxLength: 50 }),
-        (randomPath) => {
-          const jwtService = makeJwtService();
-          const configService = makeConfigService();
-          const guard = new AuthGuard(jwtService, configService);
+      fc.property(fc.string({ minLength: 0, maxLength: 50 }), randomPath => {
+        const jwtService = makeJwtService();
+        const configService = makeConfigService();
+        const guard = new AuthGuard(jwtService, configService);
 
-          const ctx = {
-            switchToHttp: () => ({
-              getRequest: () => ({ headers: {}, path: randomPath }),
-            }),
-          } as any;
+        const ctx = {
+          switchToHttp: () => ({
+            getRequest: () => ({ headers: {}, path: randomPath }),
+          }),
+        } as any;
 
-          try {
-            guard.canActivate(ctx);
-            return false;
-          } catch (err) {
-            return err instanceof UnauthorizedException;
-          }
-        },
-      ),
-      { numRuns: 100 },
+        try {
+          guard.canActivate(ctx);
+          return false;
+        } catch (err) {
+          return err instanceof UnauthorizedException;
+        }
+      }),
+      { numRuns: 100 }
     );
   });
 });
@@ -303,7 +314,9 @@ describe('Feature: syncra-offline-sync-engine, Property 8: Unauthenticated Reque
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 9: Query Scoping to Authenticated User', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should only return records belonging to the authenticated user', async () => {
     await fc.assert(
@@ -317,7 +330,7 @@ describe('Feature: syncra-offline-sync-engine, Property 9: Query Scoping to Auth
             updated_at: fc.constant('2024-01-01T00:00:00Z'),
             created_at: fc.constant('2024-01-01T00:00:00Z'),
           }),
-          { minLength: 0, maxLength: 5 },
+          { minLength: 0, maxLength: 5 }
         ),
         async (userId, records) => {
           const db = makeDb();
@@ -329,13 +342,11 @@ describe('Feature: syncra-offline-sync-engine, Property 9: Query Scoping to Auth
           // Verify the query was called with the correct userId
           const [sql, params] = db.query.mock.calls[0];
           return (
-            sql.includes('user_id') &&
-            params.includes(userId) &&
-            result.length === records.length
+            sql.includes('user_id') && params.includes(userId) && result.length === records.length
           );
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -346,7 +357,9 @@ describe('Feature: syncra-offline-sync-engine, Property 9: Query Scoping to Auth
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 10: Record Creation Persists Data', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should persist record with version=1 and return it', async () => {
     await fc.assert(
@@ -354,13 +367,15 @@ describe('Feature: syncra-offline-sync-engine, Property 10: Record Creation Pers
         const db = makeDb();
         const recordId = 'rec-' + Math.random().toString(36).slice(2);
         db.query.mockResolvedValue({
-          rows: [{
-            id: recordId,
-            data,
-            version: 1,
-            updated_at: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-          }],
+          rows: [
+            {
+              id: recordId,
+              data,
+              version: 1,
+              updated_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+            },
+          ],
         });
 
         const service = new RecordsService(db);
@@ -368,7 +383,7 @@ describe('Feature: syncra-offline-sync-engine, Property 10: Record Creation Pers
 
         return record.version === 1 && record.id === recordId;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -379,7 +394,9 @@ describe('Feature: syncra-offline-sync-engine, Property 10: Record Creation Pers
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 17: Idempotency Key Deduplication', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should return cached result without re-applying when idempotency key already exists', async () => {
     await fc.assert(
@@ -397,12 +414,10 @@ describe('Feature: syncra-offline-sync-engine, Property 17: Idempotency Key Dedu
         const result = await service.checkIdempotency(userId, idempotencyKey);
 
         return (
-          result !== null &&
-          result.operationId === 'op-cached' &&
-          result.recordId === 'rec-cached'
+          result !== null && result.operationId === 'op-cached' && result.recordId === 'rec-cached'
         );
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -413,7 +428,9 @@ describe('Feature: syncra-offline-sync-engine, Property 17: Idempotency Key Dedu
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 18: Version Conflict Detection', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should reject operation and return conflict details when version mismatches', async () => {
     await fc.assert(
@@ -448,7 +465,7 @@ describe('Feature: syncra-offline-sync-engine, Property 18: Version Conflict Det
             idempotencyKey: 'ik-conflict',
           };
 
-          const err = await service.applyOperation(userId, op).catch((e) => e);
+          const err = await service.applyOperation(userId, op).catch(e => e);
 
           if (!(err instanceof VersionConflictError)) return false;
           const result = err.conflict;
@@ -458,9 +475,9 @@ describe('Feature: syncra-offline-sync-engine, Property 18: Version Conflict Det
             result.serverVersion === serverVersion &&
             JSON.stringify(result.serverData) === JSON.stringify(serverData)
           );
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -471,7 +488,9 @@ describe('Feature: syncra-offline-sync-engine, Property 18: Version Conflict Det
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 19: Atomic Operation Application', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should rollback the transaction when any step fails', async () => {
     await fc.assert(
@@ -505,7 +524,7 @@ describe('Feature: syncra-offline-sync-engine, Property 19: Atomic Operation App
           return calls.includes('ROLLBACK') && !calls.includes('COMMIT');
         }
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -516,7 +535,9 @@ describe('Feature: syncra-offline-sync-engine, Property 19: Atomic Operation App
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 20: Delta Pull Returns Changed Records', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should only return records with cursor > given cursor value', async () => {
     await fc.assert(
@@ -533,7 +554,7 @@ describe('Feature: syncra-offline-sync-engine, Property 20: Delta Pull Returns C
             created_at: fc.constant('2024-06-01T00:00:00Z'),
             cursor: fc.integer({ min: 1, max: 100000 }),
           }),
-          { minLength: 0, maxLength: 5 },
+          { minLength: 0, maxLength: 5 }
         ),
         async (userId, cursor, limit, records) => {
           const db = makeDb();
@@ -550,9 +571,9 @@ describe('Feature: syncra-offline-sync-engine, Property 20: Delta Pull Returns C
             params.includes(limit) &&
             result.records.length === records.length
           );
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -563,7 +584,9 @@ describe('Feature: syncra-offline-sync-engine, Property 20: Delta Pull Returns C
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 22: Conflict Response Includes Details', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should include recordId, clientVersion, serverVersion, serverData in conflict response', async () => {
     await fc.assert(
@@ -599,7 +622,7 @@ describe('Feature: syncra-offline-sync-engine, Property 22: Conflict Response In
             idempotencyKey: 'ik-22',
           };
 
-          const err = await service.applyOperation(userId, op).catch((e) => e);
+          const err = await service.applyOperation(userId, op).catch(e => e);
 
           if (!(err instanceof VersionConflictError)) return false;
           const result = err.conflict;
@@ -610,9 +633,9 @@ describe('Feature: syncra-offline-sync-engine, Property 22: Conflict Response In
             result.serverVersion === serverVersion &&
             typeof result.serverData === 'object'
           );
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -623,7 +646,9 @@ describe('Feature: syncra-offline-sync-engine, Property 22: Conflict Response In
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 27: Sync Jobs Enqueued in BullMQ', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should enqueue a job and return a jobId when POST /sync is called', async () => {
     await fc.assert(
@@ -638,19 +663,23 @@ describe('Feature: syncra-offline-sync-engine, Property 27: Sync Jobs Enqueued i
             version: fc.integer({ min: 1, max: 100 }),
             idempotencyKey: fc.uuid(),
           }),
-          { minLength: 1, maxLength: 5 },
+          { minLength: 1, maxLength: 5 }
         ),
         async (userId, operations) => {
           const jobId = 'job-' + Math.random().toString(36).slice(2);
           const syncQueueService = makeSyncQueueService();
           syncQueueService.enqueue.mockResolvedValue(jobId);
 
-          const result = await syncQueueService.enqueue({ userId, operations, timestamp: Date.now() });
+          const result = await syncQueueService.enqueue({
+            userId,
+            operations,
+            timestamp: Date.now(),
+          });
 
           return typeof result === 'string' && result.length > 0;
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -665,7 +694,7 @@ describe('Feature: syncra-offline-sync-engine, Property 31: Structured Logging',
     fc.assert(
       fc.property(
         fc.constantFrom('GET', 'POST', 'PUT', 'DELETE', 'PATCH'),
-        fc.string({ minLength: 1, maxLength: 50 }).map((s) => '/' + s),
+        fc.string({ minLength: 1, maxLength: 50 }).map(s => '/' + s),
         fc.integer({ min: 100, max: 599 }),
         fc.integer({ min: 0, max: 10000 }),
         (method, path, statusCode, responseTimeMs) => {
@@ -702,9 +731,9 @@ describe('Feature: syncra-offline-sync-engine, Property 31: Structured Logging',
           } catch {
             return false;
           }
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -715,47 +744,42 @@ describe('Feature: syncra-offline-sync-engine, Property 31: Structured Logging',
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 34: Health Endpoint Status', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should return status, database, and redis fields in health response', async () => {
     await fc.assert(
-      fc.asyncProperty(
-        fc.boolean(),
-        fc.boolean(),
-        async (dbHealthy, redisHealthy) => {
-          const db = makeDb();
-          db.checkHealth.mockResolvedValue({ connected: dbHealthy });
+      fc.asyncProperty(fc.boolean(), fc.boolean(), async (dbHealthy, redisHealthy) => {
+        const db = makeDb();
+        db.checkHealth.mockResolvedValue({ connected: dbHealthy });
 
-          const syncQueueService = makeSyncQueueService();
-          if (!redisHealthy) {
-            syncQueueService.connection = null;
-          }
+        const syncQueueService = makeSyncQueueService();
+        syncQueueService.isRedisHealthy.mockResolvedValue(redisHealthy);
 
-          const service = new HealthService(db, syncQueueService);
+        const service = new HealthService(db, syncQueueService);
 
-          try {
-            const result = await service.check();
-            // If both healthy, should return healthy status
-            return (
-              result.status === 'healthy' &&
-              result.database === 'connected' &&
-              result.redis === 'connected' &&
-              typeof result.timestamp === 'string'
-            );
-          } catch (err: any) {
-            // If unhealthy, should throw with status/database/redis fields
-            const body = err.getResponse?.();
-            if (!body) return !dbHealthy || !redisHealthy;
-            return (
-              typeof body.status === 'string' &&
-              typeof body.database === 'string' &&
-              typeof body.redis === 'string'
-            );
-          }
-        },
-      ),
-      { numRuns: 100 },
+        try {
+          const result = await service.check();
+          // If both healthy, should return healthy status
+          return (
+            result.status === 'healthy' &&
+            result.database === 'connected' &&
+            result.redis === 'connected' &&
+            typeof result.timestamp === 'string'
+          );
+        } catch (err: any) {
+          // If unhealthy, should throw with status/database/redis fields
+          const body = err.getResponse?.();
+          if (!body) return !dbHealthy || !redisHealthy;
+          return (
+            typeof body.status === 'string' &&
+            typeof body.database === 'string' &&
+            typeof body.redis === 'string'
+          );
+        }
+      }),
+      { numRuns: 100 }
     );
   });
 });
-

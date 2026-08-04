@@ -22,7 +22,7 @@ function setupBrowserEnv(onLine: boolean) {
       }),
       removeEventListener: vi.fn((event: string, handler: () => void) => {
         if (listeners[event]) {
-          listeners[event] = listeners[event].filter((h) => h !== handler);
+          listeners[event] = listeners[event].filter(h => h !== handler);
         }
       }),
     },
@@ -31,8 +31,8 @@ function setupBrowserEnv(onLine: boolean) {
   });
 
   return {
-    triggerOnline: () => listeners['online']?.forEach((h) => h()),
-    triggerOffline: () => listeners['offline']?.forEach((h) => h()),
+    triggerOnline: () => listeners['online']?.forEach(h => h()),
+    triggerOffline: () => listeners['offline']?.forEach(h => h()),
   };
 }
 
@@ -58,17 +58,24 @@ describe('NetworkStateManager — initial state', () => {
   it('defaults to true when navigator is unavailable (SSR)', () => {
     const origNavigator = globalThis.navigator;
     const origWindow = (globalThis as any).window;
-    // @ts-ignore intentional
+    // @ts-expect-error intentional
     delete globalThis.navigator;
-    // @ts-ignore intentional
     delete (globalThis as any).window;
 
     const mgr = new NetworkStateManager({ checkInterval: 0 });
     expect(mgr.isOnline).toBe(true);
     mgr.destroy();
 
-    Object.defineProperty(globalThis, 'navigator', { value: origNavigator, writable: true, configurable: true });
-    Object.defineProperty(globalThis, 'window', { value: origWindow, writable: true, configurable: true });
+    Object.defineProperty(globalThis, 'navigator', {
+      value: origNavigator,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'window', {
+      value: origWindow,
+      writable: true,
+      configurable: true,
+    });
   });
 });
 
@@ -113,7 +120,7 @@ describe('NetworkStateManager — subscribe / unsubscribe', () => {
     const { triggerOnline } = setupBrowserEnv(false);
     const mgr = new NetworkStateManager({ checkInterval: 0 });
     const calls: boolean[] = [];
-    mgr.subscribe((online) => calls.push(online));
+    mgr.subscribe(online => calls.push(online));
     triggerOnline();
     expect(calls).toEqual([true]);
     mgr.destroy();
@@ -123,7 +130,7 @@ describe('NetworkStateManager — subscribe / unsubscribe', () => {
     const { triggerOffline } = setupBrowserEnv(true);
     const mgr = new NetworkStateManager({ checkInterval: 0 });
     const calls: boolean[] = [];
-    mgr.subscribe((online) => calls.push(online));
+    mgr.subscribe(online => calls.push(online));
     triggerOffline();
     expect(calls).toEqual([false]);
     mgr.destroy();
@@ -133,7 +140,7 @@ describe('NetworkStateManager — subscribe / unsubscribe', () => {
     const { triggerOnline } = setupBrowserEnv(true);
     const mgr = new NetworkStateManager({ checkInterval: 0 });
     const calls: boolean[] = [];
-    mgr.subscribe((online) => calls.push(online));
+    mgr.subscribe(online => calls.push(online));
     triggerOnline(); // already online — no-op
     expect(calls).toHaveLength(0);
     mgr.destroy();
@@ -143,7 +150,7 @@ describe('NetworkStateManager — subscribe / unsubscribe', () => {
     const { triggerOnline, triggerOffline } = setupBrowserEnv(false);
     const mgr = new NetworkStateManager({ checkInterval: 0 });
     const calls: boolean[] = [];
-    const unsubscribe = mgr.subscribe((online) => calls.push(online));
+    const unsubscribe = mgr.subscribe(online => calls.push(online));
     triggerOnline();
     unsubscribe();
     triggerOffline();
@@ -156,8 +163,8 @@ describe('NetworkStateManager — subscribe / unsubscribe', () => {
     const mgr = new NetworkStateManager({ checkInterval: 0 });
     const calls1: boolean[] = [];
     const calls2: boolean[] = [];
-    mgr.subscribe((v) => calls1.push(v));
-    mgr.subscribe((v) => calls2.push(v));
+    mgr.subscribe(v => calls1.push(v));
+    mgr.subscribe(v => calls2.push(v));
     triggerOnline();
     expect(calls1).toEqual([true]);
     expect(calls2).toEqual([true]);
@@ -189,7 +196,7 @@ describe('NetworkStateManager — fallback connectivity check', () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
     const mgr = new NetworkStateManager({ healthCheckUrl: '/health', checkInterval: 10_000 });
     const calls: boolean[] = [];
-    mgr.subscribe((v) => calls.push(v));
+    mgr.subscribe(v => calls.push(v));
     await vi.advanceTimersByTimeAsync(10_000);
     expect(mgr.isOnline).toBe(false);
     expect(calls).toEqual([false]);
@@ -201,7 +208,7 @@ describe('NetworkStateManager — fallback connectivity check', () => {
     globalThis.fetch = vi.fn().mockResolvedValue({ ok: false });
     const mgr = new NetworkStateManager({ healthCheckUrl: '/health', checkInterval: 10_000 });
     const calls: boolean[] = [];
-    mgr.subscribe((v) => calls.push(v));
+    mgr.subscribe(v => calls.push(v));
     await vi.advanceTimersByTimeAsync(10_000);
     expect(mgr.isOnline).toBe(false);
     expect(calls).toEqual([false]);
@@ -244,7 +251,7 @@ describe('NetworkStateManager — destroy()', () => {
     const { triggerOnline } = setupBrowserEnv(false);
     const mgr = new NetworkStateManager({ checkInterval: 0 });
     const calls: boolean[] = [];
-    mgr.subscribe((v) => calls.push(v));
+    mgr.subscribe(v => calls.push(v));
     mgr.destroy();
     triggerOnline();
     expect(calls).toHaveLength(0);

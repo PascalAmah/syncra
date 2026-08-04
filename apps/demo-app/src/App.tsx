@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { SdkProvider } from './sdk-context';
-import { AuthForm } from './AuthForm';
-import { AppShell } from './AppShell';
+import { SdkProvider } from './context/SdkContext';
+import { AuthForm } from './components/auth/AuthForm';
+import { JobsPage } from './pages/JobsPage';
 
 export default function App() {
   const [authState, setAuthState] = useState<{ email: string; token: string } | null>(() => {
@@ -13,12 +13,15 @@ export default function App() {
   function handleAuth(email: string, token: string) {
     localStorage.setItem('syncra_token', token);
     localStorage.setItem('syncra_email', email);
+    // Demo: use email as a stable user id for the API header
+    localStorage.setItem('syncra_user_id', email);
     setAuthState({ email, token });
   }
 
   function handleLogout() {
     localStorage.removeItem('syncra_token');
     localStorage.removeItem('syncra_email');
+    localStorage.removeItem('syncra_user_id');
     setAuthState(null);
   }
 
@@ -28,7 +31,7 @@ export default function App() {
 
   return (
     <SdkProvider key={authState.token}>
-      <AppShell userEmail={authState.email} onLogout={handleLogout} />
+      <JobsPage userEmail={authState.email} onLogout={handleLogout} />
     </SdkProvider>
   );
 }

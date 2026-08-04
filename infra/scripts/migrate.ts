@@ -34,7 +34,9 @@ async function runMigrations() {
     `);
 
     // Get list of migration files
-    const migrationsDir = path.join(process.cwd(), 'apps', 'api', 'migrations');
+    // Resolve relative to this script (infra/scripts) so migrations are found
+    // regardless of the working directory the migration is invoked from.
+    const migrationsDir = path.resolve(__dirname, '../../apps/api/migrations');
     const migrationFiles = fs
       .readdirSync(migrationsDir)
       .filter((file: string) => file.endsWith('.sql'))

@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { DualAuthGuard } from '../projects/dual-auth.guard';
 import { CreateRecordDto } from './dto/create-record.dto';
@@ -20,10 +11,7 @@ export class RecordsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(DualAuthGuard)
-  async create(
-    @Body() dto: CreateRecordDto,
-    @Req() req: Request & { user: { id: string } },
-  ) {
+  async create(@Body() dto: CreateRecordDto, @Req() req: Request & { user: { id: string } }) {
     return this.recordsService.create(req.user.id, dto.data);
   }
 

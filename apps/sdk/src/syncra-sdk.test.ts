@@ -59,7 +59,12 @@ function makeSdk() {
     configurable: true,
   });
 
-  return new SyncraSDK({ baseUrl: 'http://localhost:3000', apiKey: 'test-token', syncInterval: 0, networkStateManagerOptions: { checkInterval: 0 } });
+  return new SyncraSDK({
+    baseUrl: 'http://localhost:3000',
+    apiKey: 'test-token',
+    syncInterval: 0,
+    networkStateManagerOptions: { checkInterval: 0 },
+  });
 }
 
 function mockFetch(responses: Array<{ ok: boolean; json: () => Promise<unknown> }>) {
@@ -69,8 +74,6 @@ function mockFetch(responses: Array<{ ok: boolean; json: () => Promise<unknown> 
     return Promise.resolve(res);
   });
 }
-
-const EPOCH = new Date(0).toISOString();
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -101,11 +104,24 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
     vi.mocked(markOperationApplied).mockResolvedValue(undefined);
     vi.mocked(getMetadata).mockResolvedValue(undefined); // first sync, no cursor
 
-    const serverRecord = { id: 'rec-server-1', data: { x: 1 }, version: 2, updated_at: '2024-01-01T00:00:00Z', created_at: '2024-01-01T00:00:00Z', cursor: 5 };
+    const serverRecord = {
+      id: 'rec-server-1',
+      data: { x: 1 },
+      version: 2,
+      updated_at: '2024-01-01T00:00:00Z',
+      created_at: '2024-01-01T00:00:00Z',
+      cursor: 5,
+    };
 
     mockFetch([
       // POST /sync response
-      { ok: true, json: async () => ({ applied: [{ operationId: 'op-1', recordId: 'rec-1', newVersion: 1 }], rejected: [] }) },
+      {
+        ok: true,
+        json: async () => ({
+          applied: [{ operationId: 'op-1', recordId: 'rec-1', newVersion: 1 }],
+          rejected: [],
+        }),
+      },
       // GET /sync/updates response (cursor-based)
       { ok: true, json: async () => ({ records: [serverRecord], deletedRecordIds: [] }) },
     ]);
@@ -141,7 +157,13 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
     vi.mocked(getMetadata).mockResolvedValue('10');
 
     mockFetch([
-      { ok: true, json: async () => ({ applied: [{ operationId: 'op-2', recordId: 'rec-del', newVersion: 1 }], rejected: [] }) },
+      {
+        ok: true,
+        json: async () => ({
+          applied: [{ operationId: 'op-2', recordId: 'rec-del', newVersion: 1 }],
+          rejected: [],
+        }),
+      },
       { ok: true, json: async () => ({ records: [], deletedRecordIds: ['rec-del'] }) },
     ]);
 
@@ -159,15 +181,29 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
 
     vi.mocked(getPendingOperations).mockResolvedValue([
       {
-        id: 'op-3', type: 'create', recordId: 'rec-3', payload: {}, version: 1,
-        idempotencyKey: 'ik-3', status: 'pending', retries: 0, maxRetries: 5, createdAt: new Date(),
+        id: 'op-3',
+        type: 'create',
+        recordId: 'rec-3',
+        payload: {},
+        version: 1,
+        idempotencyKey: 'ik-3',
+        status: 'pending',
+        retries: 0,
+        maxRetries: 5,
+        createdAt: new Date(),
       },
     ]);
     vi.mocked(markOperationApplied).mockResolvedValue(undefined);
     vi.mocked(getMetadata).mockResolvedValue(undefined);
 
     mockFetch([
-      { ok: true, json: async () => ({ applied: [{ operationId: 'op-3', recordId: 'rec-3', newVersion: 1 }], rejected: [] }) },
+      {
+        ok: true,
+        json: async () => ({
+          applied: [{ operationId: 'op-3', recordId: 'rec-3', newVersion: 1 }],
+          rejected: [],
+        }),
+      },
       { ok: true, json: async () => ({ records: [], deletedRecordIds: [] }) },
     ]);
 
@@ -185,16 +221,34 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
 
     vi.mocked(getPendingOperations).mockResolvedValue([
       {
-        id: 'op-4', type: 'create', recordId: 'rec-4', payload: {}, version: 1,
-        idempotencyKey: 'ik-4', status: 'pending', retries: 0, maxRetries: 5, createdAt: new Date(),
+        id: 'op-4',
+        type: 'create',
+        recordId: 'rec-4',
+        payload: {},
+        version: 1,
+        idempotencyKey: 'ik-4',
+        status: 'pending',
+        retries: 0,
+        maxRetries: 5,
+        createdAt: new Date(),
       },
     ]);
     vi.mocked(markOperationApplied).mockResolvedValue(undefined);
     vi.mocked(getMetadata).mockResolvedValue(undefined); // no stored cursor
 
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ applied: [{ operationId: 'op-4', recordId: 'rec-4', newVersion: 1 }], rejected: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ records: [], deletedRecordIds: [] }) });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          applied: [{ operationId: 'op-4', recordId: 'rec-4', newVersion: 1 }],
+          rejected: [],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ records: [], deletedRecordIds: [] }),
+      });
 
     globalThis.fetch = fetchMock;
     vi.mocked(upsertRecord).mockResolvedValue(undefined);
@@ -214,16 +268,34 @@ describe('SyncraSDK — pullDelta (task 7.3)', () => {
 
     vi.mocked(getPendingOperations).mockResolvedValue([
       {
-        id: 'op-5', type: 'create', recordId: 'rec-5', payload: {}, version: 1,
-        idempotencyKey: 'ik-5', status: 'pending', retries: 0, maxRetries: 5, createdAt: new Date(),
+        id: 'op-5',
+        type: 'create',
+        recordId: 'rec-5',
+        payload: {},
+        version: 1,
+        idempotencyKey: 'ik-5',
+        status: 'pending',
+        retries: 0,
+        maxRetries: 5,
+        createdAt: new Date(),
       },
     ]);
     vi.mocked(markOperationApplied).mockResolvedValue(undefined);
     vi.mocked(getMetadata).mockResolvedValue(storedCursor);
 
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ applied: [{ operationId: 'op-5', recordId: 'rec-5', newVersion: 1 }], rejected: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ records: [], deletedRecordIds: [] }) });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          applied: [{ operationId: 'op-5', recordId: 'rec-5', newVersion: 1 }],
+          rejected: [],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ records: [], deletedRecordIds: [] }),
+      });
 
     globalThis.fetch = fetchMock;
     vi.mocked(upsertRecord).mockResolvedValue(undefined);
@@ -311,7 +383,7 @@ describe('SyncraSDK — last-write-wins conflict resolution (task 8.3)', () => {
         id: 'rec-conflict-1',
         data: serverData,
         version: 3,
-      }),
+      })
     );
   });
 
@@ -412,7 +484,7 @@ describe('SyncraSDK — last-write-wins conflict resolution (task 8.3)', () => {
 
     const serverData = { name: 'server-name' };
     const conflictEvents: unknown[] = [];
-    sdk.on('conflict', (c) => conflictEvents.push(c));
+    sdk.on('conflict', c => conflictEvents.push(c));
 
     mockFetch([
       {
@@ -510,7 +582,7 @@ describe('SyncraSDK — last-write-wins conflict resolution (task 8.3)', () => {
     expect(removeOperation).not.toHaveBeenCalled();
     // upsertRecord should be called with the resolved data, not serverData
     expect(upsertRecord).toHaveBeenCalledWith(
-      expect.objectContaining({ data: resolvedData, version: 7 }),
+      expect.objectContaining({ data: resolvedData, version: 7 })
     );
   });
 });
@@ -562,7 +634,7 @@ describe('SyncraSDK — custom conflict handler registration (task 8.5)', () => 
     const serverData = { count: 10 };
     const capturedConflicts: unknown[] = [];
 
-    sdk.onConflict((conflict) => {
+    sdk.onConflict(conflict => {
       capturedConflicts.push(conflict);
       return { data: { count: 15 }, version: 4 };
     });
@@ -668,7 +740,7 @@ describe('SyncraSDK — custom conflict handler registration (task 8.5)', () => 
         payload: resolvedData,
         version: serverVersion,
         status: 'pending',
-      }),
+      })
     );
   });
 
@@ -798,7 +870,7 @@ describe('SyncraSDK — client-side retry logic (task 9.3)', () => {
       expect.objectContaining({
         retries: 1,
         nextRetryAt: expect.any(Date),
-      }),
+      })
     );
   });
 
@@ -821,7 +893,7 @@ describe('SyncraSDK — client-side retry logic (task 9.3)', () => {
       expect.objectContaining({
         retries: 1,
         nextRetryAt: expect.any(Date),
-      }),
+      })
     );
   });
 
@@ -861,7 +933,7 @@ describe('SyncraSDK — client-side retry logic (task 9.3)', () => {
 
     expect(updateOperation).toHaveBeenCalledWith(
       'op-retry-1',
-      expect.objectContaining({ status: 'failed', retries: 5 }),
+      expect.objectContaining({ status: 'failed', retries: 5 })
     );
   });
 
@@ -877,7 +949,7 @@ describe('SyncraSDK — client-side retry logic (task 9.3)', () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
     const failedEvents: unknown[] = [];
-    sdk.on('sync-failed', (e) => failedEvents.push(e));
+    sdk.on('sync-failed', e => failedEvents.push(e));
 
     await expect(sdk.sync()).rejects.toThrow();
 
@@ -885,7 +957,7 @@ describe('SyncraSDK — client-side retry logic (task 9.3)', () => {
     expect(failedEvents.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('does not apply retry logic for 4xx responses (non-retriable)', async () => {
+  it('marks operations as failed for 4xx responses (non-retriable)', async () => {
     const sdk = makeSdk();
     const op = makePendingOp();
 
@@ -898,8 +970,11 @@ describe('SyncraSDK — client-side retry logic (task 9.3)', () => {
 
     await expect(sdk.sync()).rejects.toThrow('Sync request failed with status 400');
 
-    // updateOperation should NOT be called for 4xx (not retriable)
-    expect(updateOperation).not.toHaveBeenCalled();
+    // Non-retriable errors are marked failed immediately rather than retried
+    expect(updateOperation).toHaveBeenCalledWith(
+      'op-retry-1',
+      expect.objectContaining({ status: 'failed', retries: 1 })
+    );
   });
 });
 
@@ -912,19 +987,21 @@ describe('SyncraSDK — max retries enforcement (task 9.4)', () => {
     vi.clearAllMocks();
   });
 
-  function makePendingOp(overrides: Partial<{
-    id: string;
-    type: 'create' | 'update' | 'delete';
-    recordId: string;
-    payload: Record<string, unknown>;
-    version: number;
-    idempotencyKey: string;
-    status: 'pending' | 'applied' | 'failed';
-    retries: number;
-    maxRetries: number;
-    createdAt: Date;
-    nextRetryAt?: Date;
-  }> = {}) {
+  function makePendingOp(
+    overrides: Partial<{
+      id: string;
+      type: 'create' | 'update' | 'delete';
+      recordId: string;
+      payload: Record<string, unknown>;
+      version: number;
+      idempotencyKey: string;
+      status: 'pending' | 'applied' | 'failed';
+      retries: number;
+      maxRetries: number;
+      createdAt: Date;
+      nextRetryAt?: Date;
+    }> = {}
+  ) {
     return {
       id: 'op-maxretry-1',
       type: 'create' as const,
@@ -956,7 +1033,7 @@ describe('SyncraSDK — max retries enforcement (task 9.4)', () => {
 
     expect(updateOperation).toHaveBeenCalledWith(
       'op-maxretry-1',
-      expect.objectContaining({ status: 'failed', retries: 5 }),
+      expect.objectContaining({ status: 'failed', retries: 5 })
     );
   });
 
@@ -972,7 +1049,7 @@ describe('SyncraSDK — max retries enforcement (task 9.4)', () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
     const failedEvents: unknown[] = [];
-    sdk.on('sync-failed', (e) => failedEvents.push(e));
+    sdk.on('sync-failed', e => failedEvents.push(e));
 
     await expect(sdk.sync()).rejects.toThrow();
 
@@ -988,15 +1065,19 @@ describe('SyncraSDK — max retries enforcement (task 9.4)', () => {
     // First call: return the op that will exhaust retries
     const op = makePendingOp({ retries: 4, maxRetries: 5 });
     vi.mocked(getPendingOperations)
-      .mockResolvedValueOnce([op])   // first sync — op is still pending
-      .mockResolvedValueOnce([]);    // second sync — op is now failed, not returned
+      .mockResolvedValueOnce([op]) // first sync — op is still pending
+      .mockResolvedValueOnce([]); // second sync — op is now failed, not returned
 
     const { updateOperation } = await import('./db/queue-store');
     vi.mocked(updateOperation).mockResolvedValue(undefined);
 
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi
+      .fn()
       .mockRejectedValueOnce(new Error('Network error'))
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ records: [], deletedRecordIds: [] }) });
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ records: [], deletedRecordIds: [] }),
+      });
 
     // First sync — exhausts retries, marks as failed
     await expect(sdk.sync()).rejects.toThrow();
@@ -1038,7 +1119,7 @@ describe('SyncraSDK — max retries enforcement (task 9.4)', () => {
     // Should still mark as failed using default MAX_RETRIES=5
     expect(updateOperation).toHaveBeenCalledWith(
       'op-default-max',
-      expect.objectContaining({ status: 'failed', retries: 5 }),
+      expect.objectContaining({ status: 'failed', retries: 5 })
     );
   });
 
@@ -1059,11 +1140,11 @@ describe('SyncraSDK — max retries enforcement (task 9.4)', () => {
     // Should update with incremented retries and nextRetryAt, but NOT status: 'failed'
     expect(updateOperation).toHaveBeenCalledWith(
       'op-maxretry-1',
-      expect.objectContaining({ retries: 3, nextRetryAt: expect.any(Date) }),
+      expect.objectContaining({ retries: 3, nextRetryAt: expect.any(Date) })
     );
     expect(updateOperation).not.toHaveBeenCalledWith(
       'op-maxretry-1',
-      expect.objectContaining({ status: 'failed' }),
+      expect.objectContaining({ status: 'failed' })
     );
   });
 });
@@ -1082,18 +1163,20 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
     vi.useRealTimers();
   });
 
-  function makePendingOp(overrides: Partial<{
-    id: string;
-    type: 'create' | 'update' | 'delete';
-    recordId: string;
-    payload: Record<string, unknown>;
-    version: number;
-    idempotencyKey: string;
-    status: 'pending' | 'applied' | 'failed';
-    retries: number;
-    maxRetries: number;
-    createdAt: Date;
-  }> = {}) {
+  function makePendingOp(
+    overrides: Partial<{
+      id: string;
+      type: 'create' | 'update' | 'delete';
+      recordId: string;
+      payload: Record<string, unknown>;
+      version: number;
+      idempotencyKey: string;
+      status: 'pending' | 'applied' | 'failed';
+      retries: number;
+      maxRetries: number;
+      createdAt: Date;
+    }> = {}
+  ) {
     return {
       id: 'op-poll-1',
       type: 'create' as const,
@@ -1119,7 +1202,8 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
     vi.mocked(upsertRecord).mockResolvedValue(undefined);
     vi.mocked(setMetadata).mockResolvedValue(undefined);
 
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       // POST /sync → 202
       .mockResolvedValueOnce({
         ok: true,
@@ -1133,7 +1217,10 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
         json: async () => ({
           jobId: 'job-abc',
           status: 'completed',
-          result: { applied: [{ operationId: 'op-poll-1', recordId: 'rec-poll-1', newVersion: 1 }], rejected: [] },
+          result: {
+            applied: [{ operationId: 'op-poll-1', recordId: 'rec-poll-1', newVersion: 1 }],
+            rejected: [],
+          },
         }),
       })
       // GET /sync/updates
@@ -1168,7 +1255,8 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
     vi.mocked(upsertRecord).mockResolvedValue(undefined);
     vi.mocked(setMetadata).mockResolvedValue(undefined);
 
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
         status: 202,
@@ -1206,7 +1294,8 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
     vi.mocked(getPendingOperations).mockResolvedValue([op]);
     vi.mocked(getMetadata).mockResolvedValue(undefined);
 
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
         status: 202,
@@ -1223,10 +1312,12 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
       });
 
     const failedEvents: unknown[] = [];
-    sdk.on('sync-failed', (e) => failedEvents.push(e));
+    sdk.on('sync-failed', e => failedEvents.push(e));
 
     let thrownError: Error | null = null;
-    const syncPromise = sdk.sync().catch((e) => { thrownError = e; });
+    const syncPromise = sdk.sync().catch(e => {
+      thrownError = e;
+    });
     await vi.runAllTimersAsync();
     await syncPromise;
 
@@ -1245,7 +1336,8 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
     vi.mocked(upsertRecord).mockResolvedValue(undefined);
     vi.mocked(setMetadata).mockResolvedValue(undefined);
 
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       // POST /sync → 202
       .mockResolvedValueOnce({
         ok: true,
@@ -1271,7 +1363,10 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
         json: async () => ({
           jobId: 'job-slow',
           status: 'completed',
-          result: { applied: [{ operationId: 'op-poll-1', recordId: 'rec-poll-1', newVersion: 1 }], rejected: [] },
+          result: {
+            applied: [{ operationId: 'op-poll-1', recordId: 'rec-poll-1', newVersion: 1 }],
+            rejected: [],
+          },
         }),
       })
       // GET /sync/updates
@@ -1294,7 +1389,12 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
 
   it('uses auth token when polling job status endpoint', async () => {
     // Use bearerToken (no apiKey) to test the Authorization header path
-    const sdk = new SyncraSDK({ baseUrl: 'http://localhost:3000', bearerToken: 'test-token', syncInterval: 0, networkStateManagerOptions: { checkInterval: 0 } });
+    const sdk = new SyncraSDK({
+      baseUrl: 'http://localhost:3000',
+      bearerToken: 'test-token',
+      syncInterval: 0,
+      networkStateManagerOptions: { checkInterval: 0 },
+    });
     const op = makePendingOp();
 
     vi.mocked(getPendingOperations).mockResolvedValue([op]);
@@ -1303,7 +1403,8 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
     vi.mocked(upsertRecord).mockResolvedValue(undefined);
     vi.mocked(setMetadata).mockResolvedValue(undefined);
 
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
         status: 202,
@@ -1315,7 +1416,10 @@ describe('SyncraSDK — job status polling (task 9.9)', () => {
         json: async () => ({
           jobId: 'job-auth',
           status: 'completed',
-          result: { applied: [{ operationId: 'op-poll-1', recordId: 'rec-poll-1', newVersion: 1 }], rejected: [] },
+          result: {
+            applied: [{ operationId: 'op-poll-1', recordId: 'rec-poll-1', newVersion: 1 }],
+            rejected: [],
+          },
         }),
       })
       .mockResolvedValueOnce({
@@ -1374,7 +1478,10 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
     vi.mocked(getPendingOperations).mockResolvedValue([]);
     vi.mocked(getMetadata).mockResolvedValue(undefined);
     vi.mocked(setMetadata).mockResolvedValue(undefined);
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }),
+    });
 
     const sdk = makeOnlineSdk(1000);
 
@@ -1391,7 +1498,10 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
     vi.mocked(getPendingOperations).mockResolvedValue([]);
     vi.mocked(getMetadata).mockResolvedValue(undefined);
     vi.mocked(setMetadata).mockResolvedValue(undefined);
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }),
+    });
 
     const sdk = makeOnlineSdk(); // no syncInterval → default 30000
 
@@ -1408,7 +1518,10 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
     vi.mocked(getPendingOperations).mockResolvedValue([]);
     vi.mocked(getMetadata).mockResolvedValue(undefined);
     vi.mocked(setMetadata).mockResolvedValue(undefined);
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }),
+    });
 
     const sdk = makeOnlineSdk(0);
 
@@ -1424,7 +1537,10 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
     vi.mocked(getPendingOperations).mockResolvedValue([]);
     vi.mocked(getMetadata).mockResolvedValue(undefined);
     vi.mocked(setMetadata).mockResolvedValue(undefined);
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }),
+    });
 
     const sdk = makeOnlineSdk(1000);
 
@@ -1432,7 +1548,9 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
     // Access the private networkStateManager via type cast
     const nsm = (sdk as any).networkStateManager as NetworkStateManager;
     // Trigger offline by calling the internal setOnline via subscribe
-    nsm.subscribe((_online) => { /* no-op */ });
+    nsm.subscribe(() => {
+      /* no-op */
+    });
 
     // Advance 1 interval while online
     await vi.advanceTimersByTimeAsync(1000);
@@ -1453,7 +1571,10 @@ describe('SyncraSDK — periodic background sync (task 10.5)', () => {
     vi.mocked(getPendingOperations).mockResolvedValue([]);
     vi.mocked(getMetadata).mockResolvedValue(undefined);
     vi.mocked(setMetadata).mockResolvedValue(undefined);
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }),
+    });
 
     const sdk = makeOnlineSdk(1000);
 
@@ -1484,9 +1605,16 @@ describe('SyncraSDK event emitter (Req 11.2)', () => {
 
   it('emits sync-start before sending operations (Req 11.2.1)', async () => {
     const op = {
-      id: 'op-1', type: 'create' as const, recordId: 'rec-1',
-      payload: {}, version: 1, idempotencyKey: 'key-1',
-      status: 'pending' as const, retries: 0, maxRetries: 5, createdAt: new Date(),
+      id: 'op-1',
+      type: 'create' as const,
+      recordId: 'rec-1',
+      payload: {},
+      version: 1,
+      idempotencyKey: 'key-1',
+      status: 'pending' as const,
+      retries: 0,
+      maxRetries: 5,
+      createdAt: new Date(),
     };
     vi.mocked(getPendingOperations).mockResolvedValue([op]);
 
@@ -1494,13 +1622,19 @@ describe('SyncraSDK event emitter (Req 11.2)', () => {
     const events: string[] = [];
     sdk.on('sync-start', () => events.push('sync-start'));
 
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
-        ok: true, status: 200,
-        json: async () => ({ applied: [{ operationId: 'op-1', recordId: 'rec-1', newVersion: 2, data: {} }], rejected: [] }),
+        ok: true,
+        status: 200,
+        json: async () => ({
+          applied: [{ operationId: 'op-1', recordId: 'rec-1', newVersion: 2, data: {} }],
+          rejected: [],
+        }),
       })
       .mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => ({ records: [], deletedRecordIds: [] }),
       });
 
@@ -1511,23 +1645,36 @@ describe('SyncraSDK event emitter (Req 11.2)', () => {
 
   it('emits sync-complete with applied/rejected counts (Req 11.2.2)', async () => {
     const op = {
-      id: 'op-2', type: 'create' as const, recordId: 'rec-2',
-      payload: {}, version: 1, idempotencyKey: 'key-2',
-      status: 'pending' as const, retries: 0, maxRetries: 5, createdAt: new Date(),
+      id: 'op-2',
+      type: 'create' as const,
+      recordId: 'rec-2',
+      payload: {},
+      version: 1,
+      idempotencyKey: 'key-2',
+      status: 'pending' as const,
+      retries: 0,
+      maxRetries: 5,
+      createdAt: new Date(),
     };
     vi.mocked(getPendingOperations).mockResolvedValue([op]);
 
     const sdk = makeSdk();
     const completeEvents: { applied: number; rejected: number }[] = [];
-    sdk.on('sync-complete', (data) => completeEvents.push(data));
+    sdk.on('sync-complete', data => completeEvents.push(data));
 
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
-        ok: true, status: 200,
-        json: async () => ({ applied: [{ operationId: 'op-2', recordId: 'rec-2', newVersion: 1, data: {} }], rejected: [] }),
+        ok: true,
+        status: 200,
+        json: async () => ({
+          applied: [{ operationId: 'op-2', recordId: 'rec-2', newVersion: 1, data: {} }],
+          rejected: [],
+        }),
       })
       .mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => ({ records: [], deletedRecordIds: [] }),
       });
 
@@ -1539,9 +1686,16 @@ describe('SyncraSDK event emitter (Req 11.2)', () => {
 
   it('emits sync-failed with error details on network failure (Req 11.2.3)', async () => {
     const op = {
-      id: 'op-3', type: 'create' as const, recordId: 'rec-3',
-      payload: {}, version: 1, idempotencyKey: 'key-3',
-      status: 'pending' as const, retries: 0, maxRetries: 5, createdAt: new Date(),
+      id: 'op-3',
+      type: 'create' as const,
+      recordId: 'rec-3',
+      payload: {},
+      version: 1,
+      idempotencyKey: 'key-3',
+      status: 'pending' as const,
+      retries: 0,
+      maxRetries: 5,
+      createdAt: new Date(),
     };
     vi.mocked(getPendingOperations).mockResolvedValue([op]);
     const { updateOperation } = await import('./db/queue-store');
@@ -1549,7 +1703,7 @@ describe('SyncraSDK event emitter (Req 11.2)', () => {
 
     const sdk = makeSdk();
     const failedEvents: { error: Error }[] = [];
-    sdk.on('sync-failed', (e) => failedEvents.push(e));
+    sdk.on('sync-failed', e => failedEvents.push(e));
 
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
@@ -1581,25 +1735,40 @@ describe('SyncraSDK event emitter (Req 11.2)', () => {
 
   it('off() removes a listener so it no longer receives events (Req 11.2)', async () => {
     const op = {
-      id: 'op-4', type: 'create' as const, recordId: 'rec-4',
-      payload: {}, version: 1, idempotencyKey: 'key-4',
-      status: 'pending' as const, retries: 0, maxRetries: 5, createdAt: new Date(),
+      id: 'op-4',
+      type: 'create' as const,
+      recordId: 'rec-4',
+      payload: {},
+      version: 1,
+      idempotencyKey: 'key-4',
+      status: 'pending' as const,
+      retries: 0,
+      maxRetries: 5,
+      createdAt: new Date(),
     };
     vi.mocked(getPendingOperations).mockResolvedValue([op]);
 
     const sdk = makeSdk();
     let callCount = 0;
-    const listener = () => { callCount++; };
+    const listener = () => {
+      callCount++;
+    };
     sdk.on('sync-start', listener);
     sdk.off('sync-start', listener);
 
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
-        ok: true, status: 200,
-        json: async () => ({ applied: [{ operationId: 'op-4', recordId: 'rec-4', newVersion: 1, data: {} }], rejected: [] }),
+        ok: true,
+        status: 200,
+        json: async () => ({
+          applied: [{ operationId: 'op-4', recordId: 'rec-4', newVersion: 1, data: {} }],
+          rejected: [],
+        }),
       })
       .mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => ({ records: [], deletedRecordIds: [] }),
       });
 

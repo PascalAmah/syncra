@@ -6,8 +6,12 @@
 -- Replaces the previous approach of scanning sync_operations for
 -- operation_type='delete', which grew unboundedly.
 
+-- The cursor is drawn from the SAME sequence as records (records_cursor_seq)
+-- so that records and tombstones live in a single shared monotonic cursor
+-- space. A single "lastCursor" can then correctly order and page across both
+-- creates/updates and deletes (Phase 2 fixed in 00012 for existing DBs).
 CREATE TABLE IF NOT EXISTS tombstones (
-    cursor BIGSERIAL PRIMARY KEY,
+    cursor BIGINT PRIMARY KEY DEFAULT nextval('records_cursor_seq'),
     record_id UUID NOT NULL,
     user_id UUID NOT NULL,
     deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

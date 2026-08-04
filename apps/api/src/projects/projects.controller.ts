@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { ProjectsService } from './projects.service';
@@ -10,10 +22,7 @@ export class ProjectsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard)
-  async create(
-    @Body() body: { name: string },
-    @Req() req: Request & { user: { id: string } },
-  ) {
+  async create(@Body() body: { name: string }, @Req() req: Request & { user: { id: string } }) {
     return this.projectsService.createProject(req.user.id, body.name);
   }
 
@@ -24,13 +33,21 @@ export class ProjectsController {
     return this.projectsService.getUserProjects(req.user.id);
   }
 
+  @Post(':id/rotate-key')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  async rotateKey(@Param('id') id: string, @Req() req: Request & { user: { id: string } }) {
+    const result = await this.projectsService.rotateApiKey(req.user.id, id);
+    if (!result) {
+      throw new NotFoundException('Project not found');
+    }
+    return result;
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(AuthGuard)
-  async remove(
-    @Param('id') id: string,
-    @Req() req: Request & { user: { id: string } },
-  ) {
+  async remove(@Param('id') id: string, @Req() req: Request & { user: { id: string } }) {
     await this.projectsService.deleteProject(req.user.id, id);
   }
 }

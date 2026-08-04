@@ -39,11 +39,11 @@ export class SyncQueueService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     @Inject(forwardRef(() => SyncService))
-    private readonly syncService: SyncService,
+    private readonly syncService: SyncService
   ) {}
 
   onModuleInit() {
-    const redisUrl = this.configService.getOrThrow<string>('REDIS_URL');
+    const redisUrl = this.buildRedisUrl();
     this.connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 
     this.queue = new Queue<SyncJob>(QUEUE_NAME, {
@@ -70,16 +70,56 @@ export class SyncQueueService implements OnModuleInit, OnModuleDestroy {
         connection: this.connection,
         concurrency: 10,
         lockDuration: 30000,
-      },
+      }
     );
 
-    this.worker.on('completed', (job) => {
+    this.worker.on('completed', job => {
       this.logger.debug(`Job ${job.id} completed`);
     });
 
     this.worker.on('failed', (job, err) => {
       this.logger.error(`Job ${job?.id} failed: ${err.message}`);
     });
+  }
+
+  /**
+   * Resolves the Redis connection string, preferring REDIS_URL and falling
+   * back to the individual REDIS_HOST / REDIS_PORT / REDIS_PASS components.
+   */
+  private buildRedisUrl(): string {
+    const redisUrl = this.configService.get<string>('REDIS_URL');
+    if (redisUrl) {
+      return redisUrl;
+    }
+
+    const host = this.configService.get<string>('REDIS_HOST') ?? 'localhost';
+    const port = this.configService.get<number>('REDIS_PORT') ?? 6379;
+    const pass = this.configService.get<string>('REDIS_PASS');
+    return pass
+      ? `redis://:${encodeURIComponent(pass)}@${host}:${port}`
+      : `redis://${host}:${port}`;
+  }
+
+  /** Returns the underlying IORedis connection (public for observability). */
+  getConnection(): IORedis | null {
+    return this.connection ?? null;
+  }
+
+  /**
+   * Health check for Redis. Returns true only when the connection is ready
+   * and answers PONG. Used by the HealthService.
+   */
+  async isRedisHealthy(): Promise<boolean> {
+    const connection = this.getConnection();
+    if (!connection || connection.status !== 'ready') {
+      return false;
+    }
+    try {
+      const result = await connection.ping();
+      return result === 'PONG';
+    } catch {
+      return false;
+    }
   }
 
   async enqueue(data: SyncJob): Promise<string> {

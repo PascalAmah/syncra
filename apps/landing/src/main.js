@@ -19,14 +19,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Copy install command ──
-function copyInstall() {
+// Copies `npm install syncra-sdk` to the clipboard and swaps the clicked
+// pill's copy icon to a checkmark for ~1.8s as feedback. Works for any pill
+// that calls copyInstall(this) and contains a [data-copy-icon] element.
+function copyInstall(el) {
   navigator.clipboard.writeText('npm install syncra-sdk').then(() => {
-    const toast = document.getElementById('copy-toast');
-    if (toast) {
-      toast.classList.remove('hidden');
-      setTimeout(() => toast.classList.add('hidden'), 2000);
-    }
-  });
+    if (!el) return;
+    const icon = el.querySelector('[data-copy-icon]');
+    if (!icon) return;
+    icon.textContent = 'check';
+    icon.classList.add('text-primary');
+    setTimeout(() => {
+      icon.textContent = 'content_copy';
+      icon.classList.remove('text-primary');
+    }, 1800);
+  }).catch(() => {});
 }
 window.copyInstall = copyInstall;
 
