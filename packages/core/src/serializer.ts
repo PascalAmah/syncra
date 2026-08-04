@@ -33,7 +33,9 @@ function dataReviver(_key: string, value: any): any {
 }
 
 function convertIsoStringsInObject(obj: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = {};
+  // Null-prototype object so that a key literally named "__proto__" is stored
+  // as an own property instead of silently mutating the prototype chain.
+  const result: Record<string, any> = Object.create(null);
   for (const [k, v] of Object.entries(obj)) {
     if (typeof v === 'string' && ISO_DATE_REGEX.test(v)) {
       result[k] = new Date(v);
@@ -63,9 +65,7 @@ export class RecordSerializer {
   deserialize(json: string): SyncRecord {
     const parsed: unknown = JSON.parse(json, dataReviver);
     if (!isValidRecord(parsed)) {
-      throw new Error(
-        'Invalid SyncRecord: expected { id, data, version, updated_at, created_at }',
-      );
+      throw new Error('Invalid SyncRecord: expected { id, data, version, updated_at, created_at }');
     }
     return parsed;
   }
@@ -95,7 +95,7 @@ export class OperationSerializer {
     const parsed: unknown = JSON.parse(json);
     if (!isValidOperation(parsed)) {
       throw new Error(
-        'Invalid Operation: expected { id, type, recordId, payload, version, idempotencyKey }',
+        'Invalid Operation: expected { id, type, recordId, payload, version, idempotencyKey }'
       );
     }
     return parsed;

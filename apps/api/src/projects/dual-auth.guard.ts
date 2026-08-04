@@ -11,7 +11,7 @@ import { ApiKeyGuard } from './api-key.guard';
 export class DualAuthGuard implements CanActivate {
   constructor(
     private readonly authGuard: AuthGuard,
-    private readonly apiKeyGuard: ApiKeyGuard,
+    private readonly apiKeyGuard: ApiKeyGuard
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

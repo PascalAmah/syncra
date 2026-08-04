@@ -10,12 +10,10 @@ function makeDatabaseService(connected: boolean): Partial<DatabaseService> {
   };
 }
 
-function makeSyncQueueService(pingResult: string | null, status = 'ready'): Partial<SyncQueueService> {
-  const connection =
-    pingResult !== null
-      ? { ping: vi.fn().mockResolvedValue(pingResult), status }
-      : null;
-  return { connection } as unknown as Partial<SyncQueueService>;
+function makeSyncQueueService(redisHealthy: boolean): Partial<SyncQueueService> {
+  return {
+    isRedisHealthy: vi.fn().mockResolvedValue(redisHealthy),
+  } as unknown as Partial<SyncQueueService>;
 }
 
 describe('HealthService', () => {
@@ -25,7 +23,7 @@ describe('HealthService', () => {
     beforeEach(() => {
       service = new HealthService(
         makeDatabaseService(true) as DatabaseService,
-        makeSyncQueueService('PONG') as SyncQueueService,
+        makeSyncQueueService(true) as SyncQueueService
       );
     });
 
@@ -48,7 +46,7 @@ describe('HealthService', () => {
     beforeEach(() => {
       service = new HealthService(
         makeDatabaseService(false) as DatabaseService,
-        makeSyncQueueService('PONG') as SyncQueueService,
+        makeSyncQueueService(true) as SyncQueueService
       );
     });
 
@@ -71,7 +69,7 @@ describe('HealthService', () => {
     beforeEach(() => {
       service = new HealthService(
         makeDatabaseService(true) as DatabaseService,
-        makeSyncQueueService(null) as SyncQueueService,
+        makeSyncQueueService(false) as SyncQueueService
       );
     });
 
@@ -94,7 +92,7 @@ describe('HealthService', () => {
     beforeEach(() => {
       service = new HealthService(
         makeDatabaseService(true) as DatabaseService,
-        makeSyncQueueService('PONG', 'connecting') as SyncQueueService,
+        makeSyncQueueService(false) as SyncQueueService
       );
     });
 
@@ -107,7 +105,7 @@ describe('HealthService', () => {
     beforeEach(() => {
       service = new HealthService(
         makeDatabaseService(false) as DatabaseService,
-        makeSyncQueueService(null) as SyncQueueService,
+        makeSyncQueueService(false) as SyncQueueService
       );
     });
 

@@ -2,7 +2,7 @@
 <html class="dark" lang="en">
 <head>
   <meta charset="utf-8"/>
-  <style>html{background:#0e0e0e}</style>
+  <style>html{background:#04191a}</style>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>Sign In | Syncra</title>
   <link href="https://fonts.googleapis.com" rel="preconnect"/>
@@ -16,25 +16,27 @@
       theme: {
         extend: {
           colors: {
-            "primary": "#69daff", "on-primary": "#004a5d", "primary-container": "#00cffc",
-            "on-primary-container": "#004050",
-            "tertiary": "#a1ffef", "on-tertiary": "#006459",
+            "primary": "#dfef47", "on-primary": "#0a2a29", "primary-container": "#c6de1e",
+            "on-primary-container": "#12210b", "primary-dim": "#c6de1e",
+            "secondary": "#5b9bff", "on-secondary": "#04264e", "secondary-container": "#123a63",
+            "on-secondary-container": "#bcd6ff",
+            "tertiary": "#ff9c8e", "on-tertiary": "#4a0a04",
             "error": "#ff716c", "error-dim": "#d7383b",
-            "surface": "#0e0e0e", "surface-container-lowest": "#000000",
-            "surface-container-low": "#131313", "surface-container": "#1a1919",
-            "surface-container-high": "#201f1f", "surface-container-highest": "#262626",
-            "on-surface": "#ffffff", "on-surface-variant": "#adaaaa",
-            "outline": "#777575", "outline-variant": "#494847",
-            "background": "#0e0e0e",
+            "surface": "#04191a", "surface-container-lowest": "#010e10",
+            "surface-container-low": "#0a2a29", "surface-container": "#0f2e2c",
+            "surface-container-high": "#153634", "surface-container-highest": "#1b3d3a",
+            "on-surface": "#ffffff", "on-surface-variant": "#9fb0ad",
+            "outline": "rgba(255,255,255,0.14)", "outline-variant": "rgba(255,255,255,0.08)",
+            "background": "#04191a",
           },
           fontFamily: { "headline": ["Space Grotesk"], "body": ["Inter"] },
-          borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+          borderRadius: { "DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1.25rem", "full": "9999px" },
         },
       },
     }
   </script>
   <link rel="stylesheet" href="../src/style.css"/>
-  <script src="../src/config.js"></script>
+  <script src="/config.js"></script>
 </head>
 <body class="bg-surface text-on-surface min-h-screen flex flex-col">
 <div id="page-loader"><span class="loader"></span></div>
@@ -42,7 +44,7 @@
   <header class="px-6 md:px-8 py-5 flex items-center justify-between max-w-[1440px] mx-auto w-full">
     <a class="font-headline text-xl font-bold tracking-tighter text-white shrink-0" href="/">Syncra</a>
     <a href="/signup" class="text-on-surface-variant hover:text-white transition-colors text-sm font-medium font-body">
-      Create account →
+        Create account →
     </a>
   </header>
 
@@ -84,7 +86,7 @@
         <div class="flex-1 h-px bg-outline-variant/30"></div>
       </div>
 
-      <!-- GitHub OAuth — coming soon
+      <!-- GitHub OAuth â€” coming soon
       <button onclick="handleGitHubLogin()"
         class="w-full flex items-center justify-center gap-3 bg-surface-container-highest border border-outline-variant/40 text-on-surface px-5 py-3 rounded-lg font-semibold text-sm hover:bg-surface-container-high hover:border-outline-variant transition-all font-body">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -118,7 +120,7 @@
       const btn = document.getElementById('submit-btn');
       const errEl = document.getElementById('error-msg');
       errEl.classList.add('hidden');
-      btn.textContent = 'Signing in…';
+      btn.textContent = 'Signing inâ€¦';
       btn.disabled = true;
 
       try {

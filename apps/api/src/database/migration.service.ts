@@ -1,57 +1,39 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Pool } from 'pg';
+import { DatabaseService } from './database.service';
 import * as fs from 'fs';
 import * as path from 'path';
+
+export const MIGRATIONS_DIR = 'migrations';
 
 @Injectable()
 export class MigrationService implements OnModuleInit {
   private readonly logger = new Logger(MigrationService.name);
-  private pool: Pool;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly databaseService: DatabaseService) {}
 
   async onModuleInit() {
     await this.runMigrations();
   }
 
+  /**
+   * Applies pending migrations. Reuses DatabaseService's connection pool so
+   * there is a single Postgres pool owned by the app and no config drift
+   * between the migration path and the runtime data layer.
+   */
   async runMigrations() {
-    const databaseUrl = this.configService.get<string>('DATABASE_URL');
-    const dbHost = this.configService.get<string>('DB_HOST');
-    const dbPort = this.configService.get<number>('DB_PORT');
-    const dbUser = this.configService.get<string>('DB_USER');
-    const dbPass = this.configService.get<string>('DB_PASS');
-    const dbName = this.configService.get<string>('DB_NAME');
-
-    if (databaseUrl) {
-      this.pool = new Pool({ connectionString: databaseUrl });
-    } else {
-      this.pool = new Pool({
-        host: dbHost,
-        port: dbPort,
-        user: dbUser,
-        password: dbPass,
-        database: dbName,
-      });
-    }
-
     this.logger.log('Running database migrations...');
 
     try {
-      // Create migrations tracking table
       await this.createMigrationsTable();
 
-      // Get list of migration files
-      const migrationsDir = path.join(process.cwd(), 'migrations');
+      const migrationsDir = path.join(process.cwd(), MIGRATIONS_DIR);
       const migrationFiles = fs
         .readdirSync(migrationsDir)
-        .filter((file) => file.endsWith('.sql'))
+        .filter(file => file.endsWith('.sql'))
         .sort();
 
-      // Get already applied migrations
       const appliedMigrations = await this.getAppliedMigrations();
 
-      // Run pending migrations
       for (const file of migrationFiles) {
         if (!appliedMigrations.includes(file)) {
           await this.runMigration(file, migrationsDir);
@@ -62,8 +44,6 @@ export class MigrationService implements OnModuleInit {
     } catch (error) {
       this.logger.error('Database migration failed:', error);
       throw error;
-    } finally {
-      await this.pool.end();
     }
   }
 
@@ -75,11 +55,11 @@ export class MigrationService implements OnModuleInit {
         applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     `;
-    await this.pool.query(query);
+    await this.databaseService.query(query);
   }
 
   private async getAppliedMigrations(): Promise<string[]> {
-    const result = await this.pool.query<{ name: string }>(
+    const result = await this.databaseService.query<{ name: string }>(
       'SELECT name FROM migrations ORDER BY id'
     );
     return result.rows.map((row: { name: string }) => row.name);
@@ -91,7 +71,9 @@ export class MigrationService implements OnModuleInit {
     const filePath = path.join(migrationsDir, file);
     const sql = fs.readFileSync(filePath, 'utf8');
 
-    const client = await this.pool.connect();
+    // Aquire a dedicated connection from the shared pool so the whole
+    // migration runs atomically inside a single transaction.
+    const client = await this.databaseService.getClient();
     try {
       await client.query('BEGIN');
       await client.query(sql);

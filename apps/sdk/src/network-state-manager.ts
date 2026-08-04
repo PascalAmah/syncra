@@ -33,8 +33,7 @@ export class NetworkStateManager {
     this.checkInterval = options.checkInterval ?? 10_000;
 
     // SSR safety: default to true when navigator is unavailable
-    this._isOnline =
-      typeof navigator !== 'undefined' ? navigator.onLine : true;
+    this._isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
     this.onOnline = () => this.setOnline(true);
     this.onOffline = () => this.setOnline(false);
@@ -45,10 +44,7 @@ export class NetworkStateManager {
     }
 
     if (this.checkInterval > 0) {
-      this.intervalId = setInterval(
-        () => this.checkConnectivity(),
-        this.checkInterval,
-      );
+      this.intervalId = setInterval(() => this.checkConnectivity(), this.checkInterval);
     }
   }
 
@@ -106,7 +102,7 @@ export class NetworkStateManager {
   private setOnline(online: boolean): void {
     if (this._isOnline !== online) {
       this._isOnline = online;
-      this.listeners.forEach((listener) => listener(online));
+      this.listeners.forEach(listener => listener(online));
     }
   }
 }

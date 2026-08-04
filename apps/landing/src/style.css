@@ -8,13 +8,13 @@ body {
 }
 
 .glow-effect {
-  box-shadow: 0 0 40px 10px rgba(105, 218, 255, 0.1);
+  box-shadow: 0 0 40px 10px rgba(223, 239, 71, 0.08);
 }
 
 .mesh-gradient {
   background:
-    radial-gradient(at 0% 0%, rgba(105, 218, 255, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(161, 255, 239, 0.05) 0px, transparent 50%);
+    radial-gradient(at 50% 0%, rgba(223, 239, 71, 0.06) 0px, transparent 60%),
+    radial-gradient(at 0% 100%, rgba(91, 155, 255, 0.04) 0px, transparent 50%);
 }
 
 @keyframes syncpulse {
@@ -96,7 +96,19 @@ body {
 /* Prevent horizontal scroll on all pages */
 html {
   overflow-x: hidden;
+  overflow-y: auto;
   background: #0e0e0e;
+  /* Offset anchor scrolling so section headings clear the fixed top nav,
+     and animate the jump for a polished in-page navigation. */
+  scroll-padding-top: 1rem;
+  scroll-behavior: smooth;
+}
+
+/* Respect prefers-reduced-motion: jump to anchors instead of animating */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 /* ── Page transition loader ── */

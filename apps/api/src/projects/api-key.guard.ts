@@ -26,9 +26,11 @@ export class ApiKeyGuard implements CanActivate {
 
     request.projectId = result.projectId;
 
-    // Attach a synthetic user id from x-user-id header (optional)
-    const userId = (request.headers['x-user-id'] as string | undefined) ?? 'default';
-    request.user = { id: userId };
+    // The owning user is resolved server-side from the API key. The user id
+    // is NOT taken from any client-supplied header (e.g. x-user-id): trusting
+    // a caller-provided identity would let any API-key holder impersonate an
+    // arbitrary user and access another user's data (security fix).
+    request.user = { id: result.userId };
 
     return true;
   }

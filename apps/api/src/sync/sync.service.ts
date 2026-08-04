@@ -31,10 +31,7 @@ export class VersionConflictError extends Error {
 export class SyncService {
   constructor(private readonly db: DatabaseService) {}
 
-  async processOperations(
-    userId: string,
-    operations: OperationDto[],
-  ): Promise<ProcessSyncResult> {
+  async processOperations(userId: string, operations: OperationDto[]): Promise<ProcessSyncResult> {
     const applied: OperationResult[] = [];
     const rejected: ConflictResponse[] = [];
 
@@ -72,10 +69,7 @@ export class SyncService {
    * endpoint can propagate deletions using the monotonic cursor
    * (Phase 2).
    */
-  async applyOperation(
-    userId: string,
-    op: OperationDto,
-  ): Promise<OperationResult> {
+  async applyOperation(userId: string, op: OperationDto): Promise<OperationResult> {
     const client: PoolClient = await this.db.getClient();
     try {
       await client.query('BEGIN');
@@ -90,7 +84,7 @@ export class SyncService {
            INNER JOIN records r ON r.id = v.record_id
            WHERE v.record_id = $1 AND r.user_id = $2
            FOR UPDATE OF v`,
-          [op.recordId, userId],
+          [op.recordId, userId]
         );
 
         if (versionRow.rows.length > 0) {
@@ -99,7 +93,7 @@ export class SyncService {
             // Fetch server data for conflict response
             const recordRow = await client.query<{ data: Record<string, any>; version: number }>(
               `SELECT data, version FROM records WHERE id = $1 AND user_id = $2 LIMIT 1`,
-              [op.recordId, userId],
+              [op.recordId, userId]
             );
             const serverData = recordRow.rows.length > 0 ? recordRow.rows[0].data : {};
 
@@ -109,7 +103,14 @@ export class SyncService {
                  (user_id, operation_type, record_id, payload, idempotency_key, status, collection)
                VALUES ($1, $2, $3, $4, $5, 'rejected', $6)
                ON CONFLICT (user_id, idempotency_key) DO NOTHING`,
-              [userId, op.type, op.recordId, op.payload, op.idempotencyKey, op.collection ?? 'default'],
+              [
+                userId,
+                op.type,
+                op.recordId,
+                op.payload,
+                op.idempotencyKey,
+                op.collection ?? 'default',
+              ]
             );
 
             // Rollback the transaction — version conflict, no mutation applied
@@ -141,7 +142,7 @@ export class SyncService {
                  cursor = nextval('records_cursor_seq'),
                  collection = EXCLUDED.collection
            RETURNING id, version, cursor`,
-          [op.recordId, userId, op.payload, op.collection ?? 'default'],
+          [op.recordId, userId, op.payload, op.collection ?? 'default']
         );
         newVersion = insertRecord.rows[0].version;
 
@@ -149,7 +150,7 @@ export class SyncService {
           `INSERT INTO versions (record_id, version)
            VALUES ($1, $2)
            ON CONFLICT (record_id) DO UPDATE SET version = EXCLUDED.version`,
-          [op.recordId, newVersion],
+          [op.recordId, newVersion]
         );
       } else if (op.type === 'update') {
         const updateRecord = await client.query<{ version: number; cursor: number }>(
@@ -160,7 +161,7 @@ export class SyncService {
                cursor = nextval('records_cursor_seq')
            WHERE id = $2 AND user_id = $3
            RETURNING version, cursor`,
-          [op.payload, op.recordId, userId],
+          [op.payload, op.recordId, userId]
         );
 
         if (updateRecord.rows.length === 0) {
@@ -168,38 +169,48 @@ export class SyncService {
             `INSERT INTO records (id, user_id, data, version, updated_at, created_at, collection)
              VALUES ($1, $2, $3, 1, NOW(), NOW(), $4)
              RETURNING version, cursor`,
-            [op.recordId, userId, op.payload, op.collection ?? 'default'],
+            [op.recordId, userId, op.payload, op.collection ?? 'default']
           );
           newVersion = insertRecord.rows[0].version;
           await client.query(
             `INSERT INTO versions (record_id, version)
              VALUES ($1, $2)
              ON CONFLICT (record_id) DO UPDATE SET version = EXCLUDED.version`,
-            [op.recordId, newVersion],
+            [op.recordId, newVersion]
           );
         } else {
           newVersion = updateRecord.rows[0].version;
-          await client.query(
-            `UPDATE versions SET version = $1 WHERE record_id = $2`,
-            [newVersion, op.recordId],
-          );
+          await client.query(`UPDATE versions SET version = $1 WHERE record_id = $2`, [
+            newVersion,
+            op.recordId,
+          ]);
         }
       } else {
-        // delete — insert a tombstone for cursor-based propagation
+        // delete — propagate via a tombstone for cursor-based delta pulls.
         const deleteRecord = await client.query<{ version: number }>(
           `DELETE FROM records
            WHERE id = $1 AND user_id = $2
            RETURNING version`,
-          [op.recordId, userId],
+          [op.recordId, userId]
         );
 
-        newVersion = deleteRecord.rows.length > 0 ? deleteRecord.rows[0].version : 0;
+        if (deleteRecord.rows.length > 0) {
+          newVersion = deleteRecord.rows[0].version;
 
-        // Insert tombstone so other clients discover this deletion via cursor
-        await client.query(
-          `INSERT INTO tombstones (record_id, user_id) VALUES ($1, $2)`,
-          [op.recordId, userId],
-        );
+          // Insert a tombstone so other clients discover this deletion via
+          // cursor. Only recorded when the record actually existed, so
+          // deleting an already-deleted (or never-existing) record does not
+          // spam duplicate tombstones.
+          await client.query(`INSERT INTO tombstones (record_id, user_id) VALUES ($1, $2)`, [
+            op.recordId,
+            userId,
+          ]);
+
+          // The record no longer exists — drop its denormalized version row.
+          await client.query(`DELETE FROM versions WHERE record_id = $1`, [op.recordId]);
+        } else {
+          newVersion = 0;
+        }
       }
 
       // Insert event log entry (only for non-delete)
@@ -207,7 +218,7 @@ export class SyncService {
         await client.query(
           `INSERT INTO events (record_id, type, payload, created_at)
            VALUES ($1, $2, $3, NOW())`,
-          [op.recordId, op.type, op.payload],
+          [op.recordId, op.type, op.payload]
         );
       }
 
@@ -218,7 +229,7 @@ export class SyncService {
          VALUES ($1, $2, $3, $4, $5, 'applied', $6)
          ON CONFLICT (user_id, idempotency_key)
            DO UPDATE SET status = 'applied'`,
-        [userId, op.type, op.recordId, op.payload, op.idempotencyKey, op.collection ?? 'default'],
+        [userId, op.type, op.recordId, op.payload, op.idempotencyKey, op.collection ?? 'default']
       );
 
       await client.query('COMMIT');
@@ -230,16 +241,21 @@ export class SyncService {
         data: op.type !== 'delete' ? op.payload : undefined,
       };
     } catch (err) {
-      // VersionConflictError already rolled back — just release and rethrow
+      // VersionConflictError has already rolled back the transaction — just
+      // rethrow; the finally block below releases the client exactly once.
       if (err instanceof VersionConflictError) {
-        client.release();
         throw err;
       }
       await client.query('ROLLBACK').catch(() => {});
       throw err;
     } finally {
-      // Only release if not already released by VersionConflictError path
-      try { client.release(); } catch { /* already released */ }
+      // Release the connection exactly once, regardless of how the operation
+      // completed, to return it to the pool without double-release.
+      try {
+        client.release();
+      } catch {
+        /* connection already released */
+      }
     }
   }
 
@@ -254,12 +270,10 @@ export class SyncService {
     cursor: number,
     limit: number,
     clientId?: string,
-    collection?: string,
+    collection?: string
   ): Promise<SyncUpdatesResponseDto> {
     const collectionFilter = collection ? 'AND collection = $4' : '';
-    const queryParams = collection
-      ? [userId, cursor, limit, collection]
-      : [userId, cursor, limit];
+    const queryParams = collection ? [userId, cursor, limit, collection] : [userId, cursor, limit];
 
     const result = await this.db.query<{
       id: string;
@@ -277,7 +291,7 @@ export class SyncService {
          ${collectionFilter}
        ORDER BY cursor ASC
        LIMIT $3`,
-      queryParams,
+      queryParams
     );
 
     // Query tombstones using cursor — each delete inserts a tombstone row
@@ -289,13 +303,13 @@ export class SyncService {
          AND cursor > $2
        ORDER BY cursor ASC
        LIMIT $3`,
-      [userId, cursor, limit],
+      [userId, cursor, limit]
     );
 
     // Track client cursor state for future sync optimization
     if (clientId) {
-      const recordCursors = result.rows.map((r) => r.cursor);
-      const tombstoneCursors = tombstoneResult.rows.map((r) => r.cursor);
+      const recordCursors = result.rows.map(r => r.cursor);
+      const tombstoneCursors = tombstoneResult.rows.map(r => r.cursor);
       const allCursors = [...recordCursors, ...tombstoneCursors];
       const lastCursor = allCursors.length > 0 ? Math.max(...allCursors) : cursor;
 
@@ -304,14 +318,14 @@ export class SyncService {
          VALUES ($1, $2, $3, NOW())
          ON CONFLICT (client_id, user_id)
            DO UPDATE SET last_cursor = $3, last_seen_at = NOW()`,
-        [clientId, userId, lastCursor],
+        [clientId, userId, lastCursor]
       );
     }
 
     return {
       records: result.rows,
-      deletedRecordIds: tombstoneResult.rows.map((r) => r.record_id),
-      tombstones: tombstoneResult.rows.map((r) => ({ recordId: r.record_id, cursor: r.cursor })),
+      deletedRecordIds: tombstoneResult.rows.map(r => r.record_id),
+      tombstones: tombstoneResult.rows.map(r => ({ recordId: r.record_id, cursor: r.cursor })),
     };
   }
 
@@ -319,10 +333,7 @@ export class SyncService {
    * Checks if an operation with the given idempotency key has already been
    * applied for this user.
    */
-  async checkIdempotency(
-    userId: string,
-    idempotencyKey: string,
-  ): Promise<OperationResult | null> {
+  async checkIdempotency(userId: string, idempotencyKey: string): Promise<OperationResult | null> {
     const result = await this.db.query<SyncOperationRow>(
       `SELECT id, record_id, payload, status
        FROM sync_operations
@@ -330,7 +341,7 @@ export class SyncService {
          AND idempotency_key = $2
          AND status = 'applied'
        LIMIT 1`,
-      [userId, idempotencyKey],
+      [userId, idempotencyKey]
     );
 
     if (result.rows.length === 0) {

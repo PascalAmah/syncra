@@ -1,13 +1,8 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SyncraSDK } from 'syncra-sdk';
-
-const SdkContext = createContext<SyncraSDK | null>(null);
-
-export function useSdk(): SyncraSDK {
-  const sdk = useContext(SdkContext);
-  if (!sdk) throw new Error('useSdk must be used inside <SdkProvider>');
-  return sdk;
-}
+import { SdkContext } from './sdk-context';
+import { getApiBaseUrl } from '../config';
+import '../styles.css';
 
 export function SdkProvider({ children }: { children: React.ReactNode }) {
   const sdkRef = useRef<SyncraSDK | null>(null);
@@ -17,8 +12,9 @@ export function SdkProvider({ children }: { children: React.ReactNode }) {
     const apiKey = localStorage.getItem('syncra_api_key') ?? undefined;
     const userId = localStorage.getItem('syncra_user_id') ?? undefined;
     const bearerToken = localStorage.getItem('syncra_token') ?? undefined;
+    const baseUrl = getApiBaseUrl();
     const sdk = new SyncraSDK({
-      baseUrl: 'http://localhost:3000/api',
+      baseUrl,
       apiKey,
       userId,
       bearerToken,
@@ -38,13 +34,13 @@ export function SdkProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (!ready || !sdkRef.current) {
-    return <div style={{ padding: 24 }}>Initializing SDK…</div>;
+    return (
+      <div className="loading-screen">
+        <span className="loading-spinner" />
+        Initializing SDK…
+      </div>
+    );
   }
 
-  return (
-    <SdkContext.Provider value={sdkRef.current}>
-      {children}
-    </SdkContext.Provider>
-  );
+  return <SdkContext.Provider value={sdkRef.current}>{children}</SdkContext.Provider>;
 }
-
