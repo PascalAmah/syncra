@@ -218,7 +218,7 @@
         </section>
         <section id="createrecord" class="mb-12">
           <h2 class="font-headline text-xl font-bold text-white mb-4">createRecord</h2>
-          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Creates a new record locally and queues it for sync. Returns immediately â€” no network required.</p>
+          <p class="text-on-surface-variant font-body leading-relaxed mb-4">Creates a new record locally and queues it for sync. Returns immediately — no network required.</p>
           <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-5 font-mono text-sm overflow-x-auto">
             <span class="text-primary">sdk</span>.<span class="text-tertiary">createRecord</span>(<span class="text-on-surface-variant">data</span>: <span class="text-tertiary">Record&lt;string, unknown&gt;</span>): <span class="text-error-dim">Promise</span>&lt;<span class="text-tertiary">LocalRecord</span>&gt;
           </div>
@@ -277,10 +277,10 @@
             </div>
             <div class="p-6 font-mono text-xs md:text-sm leading-loose overflow-x-auto">
 <pre><span class="text-primary">sdk</span>.<span class="text-tertiary">onConflict</span>((conflict) =&gt; {
-  <span class="text-on-surface-variant">// conflict.recordId      â€” which record conflicted</span>
-  <span class="text-on-surface-variant">// conflict.clientVersion â€” your local version number</span>
-  <span class="text-on-surface-variant">// conflict.serverVersion â€” server's version number</span>
-  <span class="text-on-surface-variant">// conflict.serverData    â€” server's current data</span>
+  <span class="text-on-surface-variant">// conflict.recordId      — which record conflicted</span>
+  <span class="text-on-surface-variant">// conflict.clientVersion — your local version number</span>
+  <span class="text-on-surface-variant">// conflict.serverVersion — server's version number</span>
+  <span class="text-on-surface-variant">// conflict.serverData    — server's current data</span>
 
   <span class="text-error-dim">return</span> {
     data: { ...conflict.serverData, ...myLocalOverrides },
@@ -318,11 +318,11 @@
           <p class="text-on-surface-variant font-body leading-relaxed mb-4">API requests accept two authentication methods. Use one per request:</p>
           <div class="space-y-3 mb-4">
             <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4">
-              <p class="text-on-surface-variant text-sm font-body mb-2"><span class="text-white font-medium">API key</span> â€” project-scoped, generated from your dashboard:</p>
+              <p class="text-on-surface-variant text-sm font-body mb-2"><span class="text-white font-medium">API key</span> — project-scoped, generated from your dashboard:</p>
               <div class="bg-surface-container-lowest rounded-lg p-3 font-mono text-xs text-on-surface-variant overflow-x-auto">x-api-key: <span class="text-tertiary">syncra_pk_live_xxxxxxxxxxxx</span></div>
             </div>
             <div class="bg-surface-container rounded-xl border border-outline-variant/15 p-4">
-              <p class="text-on-surface-variant text-sm font-body mb-2"><span class="text-white font-medium">Bearer token</span> â€” JWT from the login response, for user-authenticated requests:</p>
+              <p class="text-on-surface-variant text-sm font-body mb-2"><span class="text-white font-medium">Bearer token</span> — JWT from the login response, for user-authenticated requests:</p>
               <div class="bg-surface-container-lowest rounded-lg p-3 font-mono text-xs text-on-surface-variant overflow-x-auto">Authorization: <span class="text-tertiary">Bearer &lt;your-jwt-token&gt;</span></div>
             </div>
           </div>
@@ -366,7 +366,7 @@
 </div>
 <footer class="bg-surface-container-lowest border-t border-outline-variant/15">
   <div class="grid grid-cols-2 md:grid-cols-5 gap-8 px-6 md:px-8 py-16 max-w-[1440px] mx-auto font-body text-xs text-on-surface-variant">
-    <div class="col-span-2"><div class="font-headline text-lg font-bold text-white mb-4">Syncra</div><p class="max-w-xs mb-4">Infrastructure for the offline-first web.</p><p>Â© <span id="footer-year"></span> Syncra. All rights reserved.</p></div>
+    <div class="col-span-2"><div class="font-headline text-lg font-bold text-white mb-4">Syncra</div><p class="max-w-xs mb-4">Infrastructure for the offline-first web.</p><p>© <span id="footer-year"></span> Syncra. All rights reserved.</p></div>
     <div><h6 class="text-white font-bold mb-4">Product</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="/#features">Features</a></li><li><a class="hover:text-primary transition-colors" href="/docs">Docs</a></li><li><a class="hover:text-primary transition-colors" href="/playground">Playground</a></li></ul></div>
     <div><h6 class="text-white font-bold mb-4">Resources</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="/docs">Documentation</a></li><li><a class="hover:text-primary transition-colors" href="https://github.com/PascalAmah/syncra" target="_blank">GitHub</a></li><li><a class="hover:text-primary transition-colors" href="https://npmjs.com/package/syncra-sdk" target="_blank">npm</a></li></ul></div>
     <div><h6 class="text-white font-bold mb-4">Legal</h6><ul class="space-y-3"><li><a class="hover:text-primary transition-colors" href="#">Privacy Policy</a></li><li><a class="hover:text-primary transition-colors" href="#">Terms</a></li></ul></div>

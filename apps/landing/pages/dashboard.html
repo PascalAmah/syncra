@@ -37,7 +37,7 @@
   </script>
   <link rel="stylesheet" href="../src/style.css"/>
   <script>
-    // Runs in <head> â€” redirect before body renders if no valid token
+    // Runs in <head> — redirect before body renders if no valid token
     function url(p) {
       const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
       if (!local) return p;
@@ -313,7 +313,7 @@
     <div class="col-span-2">
       <div class="font-headline text-lg font-bold text-white mb-4">Syncra</div>
       <p class="max-w-xs mb-4">Infrastructure for the offline-first web.</p>
-      <p>Â© <span id="footer-year"></span> Syncra. All rights reserved.</p>
+      <p>© <span id="footer-year"></span> Syncra. All rights reserved.</p>
     </div>
     <div>
       <h6 class="text-white font-bold mb-4">Product</h6>
@@ -353,7 +353,7 @@
       return qs ? `${mapped}?${qs}` : mapped;
     }
 
-  // â”€â”€ Auth guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Auth guard ──────────────────────────────────────────────
   const token = localStorage.getItem('syncra_token');
   if (!token) {
     window.location.replace(url('/login'));
@@ -364,7 +364,7 @@
     return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
   }
 
-  // â”€â”€ Nav: swap "Sign in / Get Started" for user email + logout â”€â”€
+  // ── Nav: swap "Sign in / Get Started" for user email + logout ──
   (function updateNav() {
     const email = localStorage.getItem('syncra_email');
     const navRight = document.querySelector('nav .flex.items-center.gap-3');
@@ -382,7 +382,7 @@
     window.location.href = url('/login');
   }
 
-  // â”€â”€ Render project cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Render project cards ─────────────────────────────────────
   const icons = ['bolt', 'inventory_2', 'point_of_sale', 'hub', 'cloud_sync', 'devices'];
   const colors = ['primary', 'tertiary', 'error', 'primary', 'tertiary', 'error'];
 
@@ -424,10 +424,10 @@
     }).join('');
   }
 
-  // â”€â”€ Fetch projects from API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Fetch projects from API ───────────────────────────────────
   async function loadProjects() {
     const grid = document.getElementById('projects-grid');
-    grid.innerHTML = `<div class="col-span-full py-12 text-center text-on-surface-variant text-sm font-body">Loading projectsâ€¦</div>`;
+    grid.innerHTML = `<div class="col-span-full py-12 text-center text-on-surface-variant text-sm font-body">Loading projects…</div>`;
     try {
       const res = await fetch(`${API}/projects`, { headers: authHeaders() });
       if (res.status === 401) { logout(); return; }
@@ -441,13 +441,13 @@
     }
   }
 
-  // â”€â”€ Create project â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Create project ────────────────────────────────────────────
   async function handleCreateProject(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
     const name = document.getElementById('project-name').value.trim();
     if (!name) return;
-    btn.textContent = 'Creatingâ€¦';
+    btn.textContent = 'Creating…';
     btn.disabled = true;
     try {
       const res = await fetch(`${API}/projects`, {
@@ -492,7 +492,7 @@
     if (e.target === this) closeModal();
   });
 
-  // â”€â”€ Delete project â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Delete project ────────────────────────────────────────────
   let deleteTargetId = null;
   let deleteTargetName = null;
 
@@ -528,7 +528,7 @@
   async function confirmDelete() {
     if (!deleteTargetId) return;
     const btn = document.getElementById('delete-confirm-btn');
-    btn.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> Deletingâ€¦';
+    btn.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> Deleting…';
     btn.disabled = true;
     try {
       const res = await fetch(`${API}/projects/${deleteTargetId}`, {
