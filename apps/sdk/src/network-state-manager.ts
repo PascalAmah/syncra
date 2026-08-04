@@ -88,11 +88,18 @@ export class NetworkStateManager {
   // Internal helpers
   // ---------------------------------------------------------------------------
 
-  /** Performs a HEAD request to the health endpoint to verify connectivity. */
+  /**
+   * Performs a HEAD request to the health endpoint to verify connectivity.
+   *
+   * Any completed HTTP response (including 4xx/5xx) proves the API is
+   * reachable, so only a rejected request — i.e. a network/connection failure —
+   * is treated as offline. A health endpoint reporting 503 (degraded) is still
+   * "online" from a connectivity standpoint.
+   */
   private async checkConnectivity(): Promise<void> {
     try {
-      const response = await fetch(this.healthCheckUrl, { method: 'HEAD' });
-      this.setOnline(response.ok);
+      await fetch(this.healthCheckUrl, { method: 'HEAD' });
+      this.setOnline(true);
     } catch {
       this.setOnline(false);
     }
