@@ -149,9 +149,9 @@
       <div class="flex items-center gap-2 text-xs text-on-surface-variant font-body mb-2">
         <a href="/dashboard" class="hover:text-white transition-colors">Projects</a>
         <span class="material-symbols-outlined text-sm">chevron_right</span>
-        <span id="project-name-breadcrumb" class="text-white">Loadingâ€¦</span>
+        <span id="project-name-breadcrumb" class="text-white">Loading…</span>
       </div>
-      <h1 id="project-title" class="font-headline text-2xl font-bold text-white">Loadingâ€¦</h1>
+      <h1 id="project-title" class="font-headline text-2xl font-bold text-white">Loading…</h1>
     </div>
 
     <!-- API Key section -->
@@ -162,7 +162,7 @@
       </div>
       <div class="flex flex-col gap-3 mb-4">
         <div id="api-key-display" class="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-lg px-4 py-3 font-mono text-sm text-on-surface-variant truncate">
-          Loadingâ€¦
+          Loading…
         </div>
         <div class="flex gap-2">
           <button
@@ -193,11 +193,11 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 reveal-stagger">
       <div class="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
         <div class="text-xs text-on-surface-variant font-body mb-2 uppercase tracking-widest">Total Records</div>
-        <div id="stat-records" class="font-headline text-3xl font-bold text-white">â€”</div>
+        <div id="stat-records" class="font-headline text-3xl font-bold text-white">—</div>
       </div>
       <div class="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
         <div class="text-xs text-on-surface-variant font-body mb-2 uppercase tracking-widest">Sync Operations</div>
-        <div id="stat-syncs" class="font-headline text-3xl font-bold text-white">â€”</div>
+        <div id="stat-syncs" class="font-headline text-3xl font-bold text-white">—</div>
       </div>
     </div>
 
@@ -230,7 +230,7 @@
     <div class="col-span-2">
       <div class="font-headline text-lg font-bold text-white mb-4">Syncra</div>
       <p class="max-w-xs mb-4">Infrastructure for the offline-first web.</p>
-      <p>Â© <span id="footer-year"></span> Syncra. All rights reserved.</p>
+      <p>© <span id="footer-year"></span> Syncra. All rights reserved.</p>
     </div>
     <div>
       <h6 class="text-white font-bold mb-4">Product</h6>
@@ -270,7 +270,7 @@
       return qs ? `${mapped}?${qs}` : mapped;
     }
 
-  // â”€â”€ Auth guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Auth guard ──────────────────────────────────────────────
   const token = localStorage.getItem('syncra_token');
   if (!token) {
     window.location.replace(url('/login'));
@@ -287,7 +287,7 @@
     window.location.href = url('/login');
   }
 
-  // â”€â”€ Nav: show user email + logout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Nav: show user email + logout ───────────────────────────
   (function updateNav() {
     const email = localStorage.getItem('syncra_email');
     const navRight = document.querySelector('nav .flex.items-center.gap-3');
@@ -299,7 +299,7 @@
     }
   })();
 
-  // â”€â”€ Get project id from URL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Get project id from URL ─────────────────────────────────
   const projectId = new URLSearchParams(window.location.search).get('id');
   if (!projectId) {
     window.location.replace(url('/dashboard'));
@@ -308,10 +308,10 @@
   let currentApiKey = '';
 
   function maskKey(key) {
-    return key.slice(0, 20) + 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' + key.slice(-4);
+    return key.slice(0, 20) + '••••••••••••••••' + key.slice(-4);
   }
 
-  // â”€â”€ Load project data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Load project data ───────────────────────────────────────
   async function loadProject() {
     try {
       const res = await fetch(`${API}/projects`, { headers: authHeaders() });
@@ -353,7 +353,7 @@
         document.getElementById('stat-syncs').textContent = synced.length.toLocaleString();
       }
     } catch (_) {
-      // silently fail â€” stats are non-critical
+      // silently fail — stats are non-critical
     }
   }
 

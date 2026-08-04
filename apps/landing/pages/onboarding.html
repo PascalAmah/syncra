@@ -45,7 +45,7 @@
   <header class="px-6 md:px-8 py-5 flex items-center justify-between max-w-[1440px] mx-auto w-full">
     <a class="font-headline text-xl font-bold tracking-tighter text-white shrink-0" href="/">Syncra</a>
     <a href="/dashboard" class="text-on-surface-variant hover:text-white transition-colors text-sm font-medium font-body">
-      Skip to dashboard â†’
+      Skip to dashboard →
     </a>
   </header>
 
@@ -105,7 +105,7 @@
         <span class="material-symbols-outlined text-primary text-2xl">key</span>
       </div>
       <h1 class="font-headline text-2xl font-bold text-white mb-2">Your API Key is ready</h1>
-      <p class="text-on-surface-variant text-sm font-body mb-8">Use this key to authenticate your SDK. Keep it secret â€” never expose it in client-side code.</p>
+      <p class="text-on-surface-variant text-sm font-body mb-8">Use this key to authenticate your SDK. Keep it secret — never expose it in client-side code.</p>
       <div class="mb-6">
         <label class="block text-xs text-on-surface-variant mb-1.5 font-body">API Key</label>
         <div class="flex items-center gap-2">
@@ -172,7 +172,7 @@
     async function goToStep(step, e) {
       if (e) e.preventDefault();
 
-      // On step 1 â†’ 2: create the project and fetch the real API key
+      // On step 1 → 2: create the project and fetch the real API key
       if (currentStep === 1 && step === 2) {
         const nameInput = document.getElementById('project-name');
         const name = nameInput.value.trim();
@@ -180,7 +180,7 @@
 
         const submitBtn = document.querySelector('#step-1 button[type="submit"]');
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Creatingâ€¦';
+        submitBtn.textContent = 'Creating…';
 
         try {
           const res = await fetch(`${API_BASE}/projects`, {
