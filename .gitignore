@@ -17,3 +17,4 @@ coverage
 *.tsbuildinfo
 files/
 .turbo/
+rebuild.md

@@ -1,7 +1,0 @@
-{
-  "buildCommand": "pnpm --filter @syncra/demo-app build",
-  "outputDirectory": "dist",
-  "installCommand": "pnpm install",
-  "framework": "vite",
-  "rewrites": [{ "source": "/((?!assets/).*)", "destination": "/index.html" }]
-}

@@ -1777,3 +1777,55 @@ describe('SyncraSDK event emitter (Req 11.2)', () => {
     expect(callCount).toBe(0);
   });
 });
+
+describe('SyncraSDK — network state manager health URL (offline detection)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { onLine: true },
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'window', {
+      value: { addEventListener: vi.fn(), removeEventListener: vi.fn() },
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('pings the API origin /health rather than the page origin (Req 10.1)', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
+    const sdk = new SyncraSDK({
+      baseUrl: 'https://api.syncra.example/api',
+      apiKey: 'test-token',
+      syncInterval: 0,
+      networkStateManagerOptions: { checkInterval: 10_000 },
+    });
+
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('https://api.syncra.example/health', {
+      method: 'HEAD',
+    });
+    sdk.destroy();
+  });
+
+  it('honors an explicit healthCheckUrl override', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
+    const sdk = new SyncraSDK({
+      baseUrl: 'https://api.syncra.example/api',
+      apiKey: 'test-token',
+      syncInterval: 0,
+      networkStateManagerOptions: { checkInterval: 10_000, healthCheckUrl: '/custom-health' },
+    });
+
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/custom-health', { method: 'HEAD' });
+    sdk.destroy();
+  });
+});
