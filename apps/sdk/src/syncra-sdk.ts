@@ -104,8 +104,13 @@ export class SyncraSDK {
     this.bearerToken = options.bearerToken ?? null;
     this.syncInterval = options.syncInterval ?? 30000;
 
+    // The health controller is registered outside the global `/api` prefix (see
+    // api main.ts), so it lives at the API origin root: `<origin>/health`.
+    // Deriving it from the origin (rather than appending to baseUrl) keeps the
+    // probe correct even though baseUrl includes a `/api` suffix.
     const healthCheckUrl =
-      options.networkStateManagerOptions?.healthCheckUrl ?? `${this.baseUrl.replace(/\/+$/, '')}/health`;
+      options.networkStateManagerOptions?.healthCheckUrl ??
+      this.resolveHealthCheckUrl(this.baseUrl);
 
     this.networkStateManager = new NetworkStateManager({
       ...options.networkStateManagerOptions,
@@ -143,6 +148,21 @@ export class SyncraSDK {
   /** Update the JWT bearer token (e.g. after login) */
   setBearerToken(token: string): void {
     this.bearerToken = token;
+  }
+
+  /**
+   * Resolve the health-check endpoint from the API base URL.
+   *
+   * The health controller is excluded from the global `/api` prefix (see
+   * api main.ts), so it lives at `<origin>/health`. Stripping the path keeps the
+   * URL correct regardless of the `/api` suffix on baseUrl.
+   */
+  private resolveHealthCheckUrl(baseUrl: string): string {
+    try {
+      return `${new URL(baseUrl).origin}/health`;
+    } catch {
+      return `${baseUrl.replace(/\/+$/, '')}/health`;
+    }
   }
 
   /** Get a namespaced Collection handle for scoped record operations (Phase 5) */

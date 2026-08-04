@@ -191,12 +191,31 @@ describe('NetworkStateManager — fallback connectivity check', () => {
     mgr.destroy();
   });
 
-  it('sets online=false when the health check request throws', async () => {
-    setupBrowserEnv(true);
+  it('stays online when the health check throws while the browser is online', async () => {
+    setupBrowserEnv(true); // browser onLine = true
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('API unreachable'));
+    const mgr = new NetworkStateManager({ healthCheckUrl: '/health', checkInterval: 10_000 });
+    const calls: boolean[] = [];
+    mgr.subscribe(v => calls.push(v));
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(mgr.isOnline).toBe(true);
+    expect(calls).toEqual([]);
+    mgr.destroy();
+  });
+
+  it('goes offline when the health check throws and the browser is offline', async () => {
+    setupBrowserEnv(true); // start online
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
     const mgr = new NetworkStateManager({ healthCheckUrl: '/health', checkInterval: 10_000 });
     const calls: boolean[] = [];
     mgr.subscribe(v => calls.push(v));
+    // Now the browser goes offline (e.g. a networking layer failure) before the
+    // periodic probe runs; the failed probe may then confirm the offline state.
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { onLine: false },
+      writable: true,
+      configurable: true,
+    });
     await vi.advanceTimersByTimeAsync(10_000);
     expect(mgr.isOnline).toBe(false);
     expect(calls).toEqual([false]);
