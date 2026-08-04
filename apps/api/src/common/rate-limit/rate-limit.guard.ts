@@ -3,10 +3,11 @@ import {
   ExecutionContext,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RateLimitModuleOptions } from './rate-limit.options';
+import { RATE_LIMIT_OPTIONS, RateLimitModuleOptions } from './rate-limit.options';
 
 interface Bucket {
   count: number;
@@ -31,7 +32,7 @@ export class RateLimiter {
   private readonly limit: number;
   private readonly ttlMs: number;
 
-  constructor(options: RateLimitModuleOptions) {
+  constructor(@Inject(RATE_LIMIT_OPTIONS) options: RateLimitModuleOptions) {
     this.limit = options.limit;
     this.ttlMs = options.ttlMs;
   }
