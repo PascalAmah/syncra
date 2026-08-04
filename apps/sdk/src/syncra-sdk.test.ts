@@ -1797,7 +1797,7 @@ describe('SyncraSDK — network state manager health URL (offline detection)', (
     vi.useRealTimers();
   });
 
-  it('pings the API origin /health rather than the page origin (Req 10.1)', async () => {
+  it('pings the API health endpoint relative to baseUrl (Req 10.1)', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
     const sdk = new SyncraSDK({
       baseUrl: 'https://api.syncra.example/api',
@@ -1808,7 +1808,7 @@ describe('SyncraSDK — network state manager health URL (offline detection)', (
 
     await vi.advanceTimersByTimeAsync(10_000);
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('https://api.syncra.example/health', {
+    expect(globalThis.fetch).toHaveBeenCalledWith('https://api.syncra.example/api/health', {
       method: 'HEAD',
     });
     sdk.destroy();
