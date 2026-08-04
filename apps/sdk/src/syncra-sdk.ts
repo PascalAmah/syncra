@@ -104,15 +104,8 @@ export class SyncraSDK {
     this.bearerToken = options.bearerToken ?? null;
     this.syncInterval = options.syncInterval ?? 30000;
 
-    // The API serves its health endpoint at the same origin as baseUrl but
-    // outside the `/api` global prefix (see api main.ts). The NetworkStateManager
-    // would otherwise fall back to `/health` relative to the page origin, which
-    // 404s whenever the SDK talks to an API on a different host/port than the
-    // hosting app. Derive the health URL from baseUrl instead, while still
-    // respecting an explicit caller override.
     const healthCheckUrl =
-      options.networkStateManagerOptions?.healthCheckUrl ??
-      this.resolveHealthCheckUrl(this.baseUrl);
+      options.networkStateManagerOptions?.healthCheckUrl ?? `${this.baseUrl.replace(/\/+$/, '')}/health`;
 
     this.networkStateManager = new NetworkStateManager({
       ...options.networkStateManagerOptions,
@@ -150,24 +143,6 @@ export class SyncraSDK {
   /** Update the JWT bearer token (e.g. after login) */
   setBearerToken(token: string): void {
     this.bearerToken = token;
-  }
-
-  /**
-   * Resolve the health-check endpoint from the API base URL.
-   *
-   * The health controller is registered outside the global `/api` prefix, so it
-   * lives at `<origin>/health`. Stripping the path keeps it correct regardless
-   * of the `/api` suffix on baseUrl.
-   */
-  private resolveHealthCheckUrl(baseUrl: string): string {
-    try {
-      // baseUrl is an absolute URL (origin + optional /api prefix); the health
-      // controller is served at the origin root, outside the /api global prefix.
-      const base = new URL(baseUrl);
-      return `${base.origin}/health`;
-    } catch {
-      return `${baseUrl.replace(/\/+$/, '')}/health`;
-    }
   }
 
   /** Get a namespaced Collection handle for scoped record operations (Phase 5) */
