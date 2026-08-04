@@ -203,15 +203,15 @@ describe('NetworkStateManager — fallback connectivity check', () => {
     mgr.destroy();
   });
 
-  it('sets online=false when the health check returns a non-ok response', async () => {
+  it('stays online when the health check returns a non-ok response (server reachable)', async () => {
     setupBrowserEnv(true);
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false });
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
     const mgr = new NetworkStateManager({ healthCheckUrl: '/health', checkInterval: 10_000 });
     const calls: boolean[] = [];
     mgr.subscribe(v => calls.push(v));
     await vi.advanceTimersByTimeAsync(10_000);
-    expect(mgr.isOnline).toBe(false);
-    expect(calls).toEqual([false]);
+    expect(mgr.isOnline).toBe(true);
+    expect(calls).toEqual([]);
     mgr.destroy();
   });
 
