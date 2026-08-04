@@ -19,12 +19,12 @@ export async function openDatabase(): Promise<SyncraDB> {
         recordsStore.createIndex(
           INDEXES.RECORDS.USER_ID.name,
           INDEXES.RECORDS.USER_ID.keyPath,
-          INDEXES.RECORDS.USER_ID.options,
+          INDEXES.RECORDS.USER_ID.options
         );
         recordsStore.createIndex(
           INDEXES.RECORDS.UPDATED_AT.name,
           INDEXES.RECORDS.UPDATED_AT.keyPath,
-          INDEXES.RECORDS.UPDATED_AT.options,
+          INDEXES.RECORDS.UPDATED_AT.options
         );
 
         // offline_queue store
@@ -32,17 +32,17 @@ export async function openDatabase(): Promise<SyncraDB> {
         queueStore.createIndex(
           INDEXES.OFFLINE_QUEUE.STATUS.name,
           INDEXES.OFFLINE_QUEUE.STATUS.keyPath,
-          INDEXES.OFFLINE_QUEUE.STATUS.options,
+          INDEXES.OFFLINE_QUEUE.STATUS.options
         );
         queueStore.createIndex(
           INDEXES.OFFLINE_QUEUE.RETRIES.name,
           INDEXES.OFFLINE_QUEUE.RETRIES.keyPath,
-          INDEXES.OFFLINE_QUEUE.RETRIES.options,
+          INDEXES.OFFLINE_QUEUE.RETRIES.options
         );
         queueStore.createIndex(
           INDEXES.OFFLINE_QUEUE.CREATED_AT.name,
           INDEXES.OFFLINE_QUEUE.CREATED_AT.keyPath,
-          INDEXES.OFFLINE_QUEUE.CREATED_AT.options,
+          INDEXES.OFFLINE_QUEUE.CREATED_AT.options
         );
 
         // metadata store

@@ -157,8 +157,15 @@ DATABASE_URL=postgresql://user:password@host:5432/syncra_db
 # DB_PASS=postgres
 # DB_NAME=syncra
 
-# Redis
+# Redis — choose ONE of the two options below
+
+# Option A: single connection string (recommended for cloud deployments)
 REDIS_URL=redis://localhost:6379
+
+# Option B: individual component variables (e.g. local Docker compose)
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
+# REDIS_PASS=  # optional
 
 # Auth
 JWT_SECRET=your-secret-here
@@ -166,6 +173,21 @@ JWT_SECRET=your-secret-here
 # App
 PORT=3000
 NODE_ENV=development
+
+# CORS: comma-separated browser origins allowed to call the API.
+# When unset, all origins are allowed (dev convenience). Example:
+# CORS_ORIGINS=https://syncra-demo.vercel.app,http://localhost:5173
+
+# Production hardening
+# Global HTTP rate limiting (requests per window per client).
+# Set RATE_LIMIT_ENABLED=false only for load testing.
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_LIMIT=100        # max requests per window
+RATE_LIMIT_TTL=60           # window length in seconds
+# Maximum accepted request body size in bytes (default 1 MiB = 1048576).
+BODY_SIZE_LIMIT=1048576
+# Refresh-token lifetime in seconds (default 30 days = 2592000).
+JWT_REFRESH_TTL=2592000
 ```
 
 ---

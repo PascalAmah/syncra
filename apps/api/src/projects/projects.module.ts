@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { DatabaseService } from '../database';
 import { AuthModule } from '../auth/auth.module';
 import { ProjectsService } from './projects.service';
 import { ProjectsController } from './projects.controller';
@@ -9,7 +8,7 @@ import { DualAuthGuard } from './dual-auth.guard';
 @Module({
   imports: [AuthModule],
   controllers: [ProjectsController],
-  providers: [ProjectsService, DatabaseService, ApiKeyGuard, DualAuthGuard],
+  providers: [ProjectsService, ApiKeyGuard, DualAuthGuard],
   exports: [ProjectsService, ApiKeyGuard, DualAuthGuard],
 })
 export class ProjectsModule {}

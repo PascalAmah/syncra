@@ -24,16 +24,13 @@ import { SyncQueueService } from './sync-queue.service';
 export class SyncController {
   constructor(
     private readonly syncService: SyncService,
-    private readonly syncQueueService: SyncQueueService,
+    private readonly syncQueueService: SyncQueueService
   ) {}
 
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
   @UseGuards(DualAuthGuard)
-  async push(
-    @Body() dto: SyncRequestDto,
-    @Req() req: Request & { user: { id: string } },
-  ) {
+  async push(@Body() dto: SyncRequestDto, @Req() req: Request & { user: { id: string } }) {
     const jobId = await this.syncQueueService.enqueue({
       userId: req.user.id,
       operations: dto.operations,
@@ -61,7 +58,7 @@ export class SyncController {
   @UseGuards(DualAuthGuard)
   async pull(
     @Query() query: Record<string, string>,
-    @Req() req: Request & { user: { id: string } },
+    @Req() req: Request & { user: { id: string } }
   ) {
     const queryDto = plainToInstance(SyncUpdatesQueryDto, {
       cursor: query.cursor !== undefined ? Number(query.cursor) : undefined,
@@ -70,9 +67,7 @@ export class SyncController {
     });
     const errors = await validate(queryDto);
     if (errors.length > 0) {
-      throw new BadRequestException(
-        'cursor must be a non-negative integer',
-      );
+      throw new BadRequestException('cursor must be a non-negative integer');
     }
     const clientId = req.headers['x-client-id'] as string | undefined;
     return this.syncService.getSyncUpdates(
@@ -80,7 +75,7 @@ export class SyncController {
       queryDto.cursor,
       queryDto.limit ?? 1000,
       clientId,
-      query.collection,
+      query.collection
     );
   }
 }

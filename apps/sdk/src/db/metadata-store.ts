@@ -8,7 +8,7 @@ interface MetadataEntry {
 
 export async function getMetadata(key: string): Promise<string | undefined> {
   const db = await getDb();
-  const entry = await db.get(STORE_NAMES.METADATA, key) as MetadataEntry | undefined;
+  const entry = (await db.get(STORE_NAMES.METADATA, key)) as MetadataEntry | undefined;
   return entry?.value;
 }
 

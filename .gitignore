@@ -16,3 +16,4 @@ coverage
 .idea
 *.tsbuildinfo
 files/
+.turbo/

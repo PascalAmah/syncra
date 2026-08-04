@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: syncra-postgres
+    restart: unless-stopped
     ports:
       - '5432:5432'
     environment:
@@ -19,6 +20,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: syncra-redis
+    restart: unless-stopped
     ports:
       - '6379:6379'
     volumes:

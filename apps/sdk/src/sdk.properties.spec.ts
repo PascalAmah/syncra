@@ -39,7 +39,13 @@ vi.mock('./db/database', () => ({
 }));
 
 import { upsertRecord, deleteRecord, getRecord } from './db/records-store';
-import { getPendingOperations, enqueueOperation, markOperationApplied, removeOperation, updateOperation } from './db/queue-store';
+import {
+  getPendingOperations,
+  enqueueOperation,
+  markOperationApplied,
+  removeOperation,
+  updateOperation,
+} from './db/queue-store';
 import { getMetadata, setMetadata } from './db/metadata-store';
 import { SyncraSDK } from './syncra-sdk';
 import { calculateRetryDelay } from './retry';
@@ -93,7 +99,7 @@ function makeOnlineSdk() {
 // Arbitrary for record data payloads
 const dataArb = fc.dictionary(
   fc.string({ minLength: 1, maxLength: 15 }),
-  fc.oneof(fc.string({ maxLength: 50 }), fc.integer({ min: 0, max: 9999 }), fc.boolean()),
+  fc.oneof(fc.string({ maxLength: 50 }), fc.integer({ min: 0, max: 9999 }), fc.boolean())
 );
 
 // ---------------------------------------------------------------------------
@@ -102,11 +108,13 @@ const dataArb = fc.dictionary(
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 11: Offline Create Persists Locally', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should persist the record to local DB when createRecord() is called while offline', async () => {
     await fc.assert(
-      fc.asyncProperty(dataArb, async (data) => {
+      fc.asyncProperty(dataArb, async data => {
         vi.mocked(upsertRecord).mockResolvedValue(undefined);
         vi.mocked(enqueueOperation).mockResolvedValue(undefined);
 
@@ -115,10 +123,10 @@ describe('Feature: syncra-offline-sync-engine, Property 11: Offline Create Persi
 
         // upsertRecord must have been called with the new record
         const calls = vi.mocked(upsertRecord).mock.calls;
-        const persisted = calls.find((c) => c[0].id === record.id);
+        const persisted = calls.find(c => c[0].id === record.id);
         return persisted !== undefined && persisted[0].version === 1;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -129,11 +137,13 @@ describe('Feature: syncra-offline-sync-engine, Property 11: Offline Create Persi
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 12: Offline Create Enqueues Operation', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should enqueue a create operation with status pending when createRecord() is called while offline', async () => {
     await fc.assert(
-      fc.asyncProperty(dataArb, async (data) => {
+      fc.asyncProperty(dataArb, async data => {
         vi.mocked(upsertRecord).mockResolvedValue(undefined);
         vi.mocked(enqueueOperation).mockResolvedValue(undefined);
 
@@ -142,11 +152,11 @@ describe('Feature: syncra-offline-sync-engine, Property 12: Offline Create Enque
 
         const calls = vi.mocked(enqueueOperation).mock.calls;
         const queued = calls.find(
-          (c) => c[0].type === 'create' && c[0].recordId === record.id && c[0].status === 'pending',
+          c => c[0].type === 'create' && c[0].recordId === record.id && c[0].status === 'pending'
         );
         return queued !== undefined;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -157,7 +167,9 @@ describe('Feature: syncra-offline-sync-engine, Property 12: Offline Create Enque
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 13: Offline Update Increments Version', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should increment the local record version by 1 when updateRecord() is called while offline', async () => {
     await fc.assert(
@@ -181,9 +193,9 @@ describe('Feature: syncra-offline-sync-engine, Property 13: Offline Update Incre
           const updated = await sdk.updateRecord(id, data);
 
           return updated.version === currentVersion + 1;
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -194,11 +206,13 @@ describe('Feature: syncra-offline-sync-engine, Property 13: Offline Update Incre
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 14: Offline Delete Marks Record', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should call deleteRecord on the local DB when deleteRecord() is called while offline', async () => {
     await fc.assert(
-      fc.asyncProperty(fc.uuid(), async (id) => {
+      fc.asyncProperty(fc.uuid(), async id => {
         const existingRecord = {
           id,
           data: {},
@@ -214,9 +228,9 @@ describe('Feature: syncra-offline-sync-engine, Property 14: Offline Delete Marks
         await sdk.deleteRecord(id);
 
         const deleteCalls = vi.mocked(deleteRecord).mock.calls;
-        return deleteCalls.some((c) => c[0] === id);
+        return deleteCalls.some(c => c[0] === id);
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -227,7 +241,9 @@ describe('Feature: syncra-offline-sync-engine, Property 14: Offline Delete Marks
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 15: Queue Persistence Across Restarts', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should load pending operations from IndexedDB on initialize()', async () => {
     await fc.assert(
@@ -245,9 +261,9 @@ describe('Feature: syncra-offline-sync-engine, Property 15: Queue Persistence Ac
             maxRetries: fc.constant(5),
             createdAt: fc.constant(new Date()),
           }),
-          { minLength: 0, maxLength: 5 },
+          { minLength: 0, maxLength: 5 }
         ),
-        async (pendingOps) => {
+        async pendingOps => {
           vi.mocked(getPendingOperations).mockResolvedValue(pendingOps);
           const { getDb } = await import('./db/database');
           vi.mocked(getDb).mockResolvedValue({
@@ -262,9 +278,9 @@ describe('Feature: syncra-offline-sync-engine, Property 15: Queue Persistence Ac
 
           const loaded = sdk.getPendingOperations();
           return loaded.length === pendingOps.length;
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -275,7 +291,9 @@ describe('Feature: syncra-offline-sync-engine, Property 15: Queue Persistence Ac
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 16: Sync Sends Pending Operations', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should POST pending operations to /sync when sync() is called while online', async () => {
     await fc.assert(
@@ -293,21 +311,26 @@ describe('Feature: syncra-offline-sync-engine, Property 16: Sync Sends Pending O
             maxRetries: fc.constant(5),
             createdAt: fc.constant(new Date()),
           }),
-          { minLength: 1, maxLength: 5 },
+          { minLength: 1, maxLength: 5 }
         ),
-        async (pendingOps) => {
+        async pendingOps => {
           vi.mocked(getPendingOperations).mockResolvedValue(pendingOps);
           vi.mocked(markOperationApplied).mockResolvedValue(undefined);
           vi.mocked(getMetadata).mockResolvedValue(undefined);
           vi.mocked(upsertRecord).mockResolvedValue(undefined);
           vi.mocked(setMetadata).mockResolvedValue(undefined);
 
-          const fetchMock = vi.fn()
+          const fetchMock = vi
+            .fn()
             .mockResolvedValueOnce({
               ok: true,
               status: 200,
               json: async () => ({
-                applied: pendingOps.map((op) => ({ operationId: op.id, recordId: op.recordId, newVersion: 1 })),
+                applied: pendingOps.map(op => ({
+                  operationId: op.id,
+                  recordId: op.recordId,
+                  newVersion: 1,
+                })),
                 rejected: [],
               }),
             })
@@ -324,13 +347,10 @@ describe('Feature: syncra-offline-sync-engine, Property 16: Sync Sends Pending O
           // Verify POST /sync was called with all pending operations
           const postCall = fetchMock.mock.calls[0];
           const body = JSON.parse(postCall[1].body);
-          return (
-            postCall[0].includes('/sync') &&
-            body.operations.length === pendingOps.length
-          );
-        },
+          return postCall[0].includes('/sync') && body.operations.length === pendingOps.length;
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -341,7 +361,9 @@ describe('Feature: syncra-offline-sync-engine, Property 16: Sync Sends Pending O
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 21: Pulled Records Merged Locally', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should upsert all records returned from GET /sync/updates into local DB', async () => {
     await fc.assert(
@@ -354,9 +376,9 @@ describe('Feature: syncra-offline-sync-engine, Property 21: Pulled Records Merge
             updated_at: fc.constant('2024-06-01T00:00:00Z'),
             created_at: fc.constant('2024-01-01T00:00:00Z'),
           }),
-          { minLength: 1, maxLength: 5 },
+          { minLength: 1, maxLength: 5 }
         ),
-        async (serverRecords) => {
+        async serverRecords => {
           const pendingOp = {
             id: 'op-pull-test',
             type: 'create' as const,
@@ -375,12 +397,15 @@ describe('Feature: syncra-offline-sync-engine, Property 21: Pulled Records Merge
           vi.mocked(upsertRecord).mockResolvedValue(undefined);
           vi.mocked(setMetadata).mockResolvedValue(undefined);
 
-          globalThis.fetch = vi.fn()
+          globalThis.fetch = vi
+            .fn()
             .mockResolvedValueOnce({
               ok: true,
               status: 200,
               json: async () => ({
-                applied: [{ operationId: 'op-pull-test', recordId: 'rec-pull-test', newVersion: 1 }],
+                applied: [
+                  { operationId: 'op-pull-test', recordId: 'rec-pull-test', newVersion: 1 },
+                ],
                 rejected: [],
               }),
             })
@@ -395,10 +420,10 @@ describe('Feature: syncra-offline-sync-engine, Property 21: Pulled Records Merge
 
           const upsertCalls = vi.mocked(upsertRecord).mock.calls;
           // All server records should have been upserted
-          return serverRecords.every((r) => upsertCalls.some((c) => c[0].id === r.id));
-        },
+          return serverRecords.every(r => upsertCalls.some(c => c[0].id === r.id));
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -409,7 +434,9 @@ describe('Feature: syncra-offline-sync-engine, Property 21: Pulled Records Merge
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 23: Last-Write-Wins Default Resolution', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should overwrite local record with serverData when no conflict handler is registered', async () => {
     await fc.assert(
@@ -443,20 +470,23 @@ describe('Feature: syncra-offline-sync-engine, Property 23: Last-Write-Wins Defa
           vi.mocked(removeOperation).mockResolvedValue(undefined);
           vi.mocked(setMetadata).mockResolvedValue(undefined);
 
-          globalThis.fetch = vi.fn()
+          globalThis.fetch = vi
+            .fn()
             .mockResolvedValueOnce({
               ok: true,
               status: 200,
               json: async () => ({
                 applied: [],
-                rejected: [{
-                  operationId: 'op-lww',
-                  recordId,
-                  reason: 'version_conflict',
-                  clientVersion: serverVersion - 1,
-                  serverVersion,
-                  serverData,
-                }],
+                rejected: [
+                  {
+                    operationId: 'op-lww',
+                    recordId,
+                    reason: 'version_conflict',
+                    clientVersion: serverVersion - 1,
+                    serverVersion,
+                    serverData,
+                  },
+                ],
               }),
             })
             .mockResolvedValueOnce({
@@ -470,11 +500,14 @@ describe('Feature: syncra-offline-sync-engine, Property 23: Last-Write-Wins Defa
 
           const upsertCalls = vi.mocked(upsertRecord).mock.calls;
           return upsertCalls.some(
-            (c) => c[0].id === recordId && c[0].version === serverVersion && JSON.stringify(c[0].data) === JSON.stringify(serverData),
+            c =>
+              c[0].id === recordId &&
+              c[0].version === serverVersion &&
+              JSON.stringify(c[0].data) === JSON.stringify(serverData)
           );
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -485,7 +518,9 @@ describe('Feature: syncra-offline-sync-engine, Property 23: Last-Write-Wins Defa
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 24: Custom Conflict Handler Invocation', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should invoke the custom conflict handler with the conflict object when registered', async () => {
     await fc.assert(
@@ -519,20 +554,23 @@ describe('Feature: syncra-offline-sync-engine, Property 24: Custom Conflict Hand
           vi.mocked(enqueueOperation).mockResolvedValue(undefined);
           vi.mocked(setMetadata).mockResolvedValue(undefined);
 
-          globalThis.fetch = vi.fn()
+          globalThis.fetch = vi
+            .fn()
             .mockResolvedValueOnce({
               ok: true,
               status: 200,
               json: async () => ({
                 applied: [],
-                rejected: [{
-                  operationId: 'op-custom',
-                  recordId,
-                  reason: 'version_conflict',
-                  clientVersion: serverVersion - 1,
-                  serverVersion,
-                  serverData,
-                }],
+                rejected: [
+                  {
+                    operationId: 'op-custom',
+                    recordId,
+                    reason: 'version_conflict',
+                    clientVersion: serverVersion - 1,
+                    serverVersion,
+                    serverData,
+                  },
+                ],
               }),
             })
             .mockResolvedValueOnce({
@@ -543,16 +581,16 @@ describe('Feature: syncra-offline-sync-engine, Property 24: Custom Conflict Hand
 
           const sdk = makeOnlineSdk();
           let handlerCalled = false;
-          sdk.onConflict((conflict) => {
+          sdk.onConflict(conflict => {
             handlerCalled = conflict.recordId === recordId;
             return { data: { merged: true }, version: serverVersion };
           });
           await sdk.sync();
 
           return handlerCalled;
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -571,9 +609,9 @@ describe('Feature: syncra-offline-sync-engine, Property 25: Exponential Backoff 
         (retries, base) => {
           const delay = calculateRetryDelay(retries, base);
           return delay === base * Math.pow(2, retries);
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -584,48 +622,55 @@ describe('Feature: syncra-offline-sync-engine, Property 25: Exponential Backoff 
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 26: Max Retries Enforcement', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should mark operation as failed and emit sync-failed when retries reaches maxRetries', async () => {
     await fc.assert(
-      fc.asyncProperty(
-        fc.integer({ min: 1, max: 10 }),
-        async (maxRetries) => {
-          const op = {
-            id: 'op-maxretry',
-            type: 'create' as const,
-            recordId: 'rec-maxretry',
-            payload: {},
-            version: 1,
-            idempotencyKey: 'ik-maxretry',
-            status: 'pending' as const,
-            retries: maxRetries - 1, // one more failure will hit max
-            maxRetries,
-            createdAt: new Date(),
-          };
-          vi.mocked(getPendingOperations).mockResolvedValue([op]);
-          vi.mocked(updateOperation).mockResolvedValue(undefined);
+      fc.asyncProperty(fc.integer({ min: 1, max: 10 }), async maxRetries => {
+        const op = {
+          id: 'op-maxretry',
+          type: 'create' as const,
+          recordId: 'rec-maxretry',
+          payload: {},
+          version: 1,
+          idempotencyKey: 'ik-maxretry',
+          status: 'pending' as const,
+          retries: maxRetries - 1, // one more failure will hit max
+          maxRetries,
+          createdAt: new Date(),
+        };
+        vi.mocked(getPendingOperations).mockResolvedValue([op]);
+        vi.mocked(updateOperation).mockResolvedValue(undefined);
 
-          globalThis.fetch = vi.fn()
-            .mockRejectedValueOnce(new Error('Network error'))
-            .mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
+        globalThis.fetch = vi
+          .fn()
+          .mockRejectedValueOnce(new Error('Network error'))
+          .mockResolvedValue({
+            ok: true,
+            json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }),
+          });
 
-          const sdk = makeOnlineSdk();
-          const failedEvents: unknown[] = [];
-          sdk.on('sync-failed', (e) => failedEvents.push(e));
+        const sdk = makeOnlineSdk();
+        const failedEvents: unknown[] = [];
+        sdk.on('sync-failed', e => failedEvents.push(e));
 
-          try { await sdk.sync(); } catch { /* expected */ }
+        try {
+          await sdk.sync();
+        } catch {
+          /* expected */
+        }
 
-          sdk.destroy();
+        sdk.destroy();
 
-          const updateCalls = vi.mocked(updateOperation).mock.calls;
-          const markedFailed = updateCalls.some(
-            (c) => c[0] === 'op-maxretry' && (c[1] as any).status === 'failed',
-          );
-          return markedFailed && failedEvents.length >= 1;
-        },
-      ),
-      { numRuns: 100 },
+        const updateCalls = vi.mocked(updateOperation).mock.calls;
+        const markedFailed = updateCalls.some(
+          c => c[0] === 'op-maxretry' && (c[1] as any).status === 'failed'
+        );
+        return markedFailed && failedEvents.length >= 1;
+      }),
+      { numRuns: 100 }
     );
   });
 });
@@ -638,7 +683,7 @@ describe('Feature: syncra-offline-sync-engine, Property 26: Max Retries Enforcem
 describe('Feature: syncra-offline-sync-engine, Property 28: Online/Offline Detection', () => {
   it('should reflect the correct isOnline state based on navigator.onLine', () => {
     fc.assert(
-      fc.property(fc.boolean(), (onLine) => {
+      fc.property(fc.boolean(), onLine => {
         setupBrowserEnv(onLine);
         const sdk = new SyncraSDK({
           syncInterval: 0,
@@ -648,7 +693,7 @@ describe('Feature: syncra-offline-sync-engine, Property 28: Online/Offline Detec
         sdk.destroy();
         return result;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -659,15 +704,20 @@ describe('Feature: syncra-offline-sync-engine, Property 28: Online/Offline Detec
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 29: Auto-Sync on Online', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should call sync() automatically when transitioning from offline to online', () => {
     fc.assert(
-      fc.property(fc.boolean(), (_unused) => {
+      fc.property(fc.boolean(), () => {
         vi.mocked(getPendingOperations).mockResolvedValue([]);
         vi.mocked(getMetadata).mockResolvedValue(undefined);
         vi.mocked(setMetadata).mockResolvedValue(undefined);
-        globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
+        globalThis.fetch = vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }),
+        });
 
         // Start offline
         setupBrowserEnv(false);
@@ -680,7 +730,10 @@ describe('Feature: syncra-offline-sync-engine, Property 29: Auto-Sync on Online'
         const nsm = (sdk as any).networkStateManager;
         let syncCalled = false;
         const origSync = sdk.sync.bind(sdk);
-        sdk.sync = async () => { syncCalled = true; return origSync(); };
+        sdk.sync = async () => {
+          syncCalled = true;
+          return origSync();
+        };
 
         // Trigger online transition
         nsm['listeners'].forEach((listener: (online: boolean) => void) => listener(true));
@@ -688,7 +741,7 @@ describe('Feature: syncra-offline-sync-engine, Property 29: Auto-Sync on Online'
         sdk.destroy();
         return syncCalled;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -710,28 +763,28 @@ describe('Feature: syncra-offline-sync-engine, Property 30: Periodic Sync Execut
 
   it('should invoke sync() at least once within the configured interval while online', async () => {
     await fc.assert(
-      fc.asyncProperty(
-        fc.integer({ min: 100, max: 5000 }),
-        async (interval) => {
-          vi.mocked(getPendingOperations).mockResolvedValue([]);
-          vi.mocked(getMetadata).mockResolvedValue(undefined);
-          vi.mocked(setMetadata).mockResolvedValue(undefined);
-          globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }) });
+      fc.asyncProperty(fc.integer({ min: 100, max: 5000 }), async interval => {
+        vi.mocked(getPendingOperations).mockResolvedValue([]);
+        vi.mocked(getMetadata).mockResolvedValue(undefined);
+        vi.mocked(setMetadata).mockResolvedValue(undefined);
+        globalThis.fetch = vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({ records: [], deletedRecordIds: [], tombstones: [] }),
+        });
 
-          setupBrowserEnv(true);
-          const sdk = new SyncraSDK({
-            syncInterval: interval,
-            networkStateManagerOptions: { checkInterval: 0 },
-          });
+        setupBrowserEnv(true);
+        const sdk = new SyncraSDK({
+          syncInterval: interval,
+          networkStateManagerOptions: { checkInterval: 0 },
+        });
 
-          await vi.advanceTimersByTimeAsync(interval);
+        await vi.advanceTimersByTimeAsync(interval);
 
-          const callCount = vi.mocked(getPendingOperations).mock.calls.length;
-          sdk.destroy();
-          return callCount >= 1;
-        },
-      ),
-      { numRuns: 100 },
+        const callCount = vi.mocked(getPendingOperations).mock.calls.length;
+        sdk.destroy();
+        return callCount >= 1;
+      }),
+      { numRuns: 100 }
     );
   });
 });
@@ -742,11 +795,13 @@ describe('Feature: syncra-offline-sync-engine, Property 30: Periodic Sync Execut
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 32: Sync-Start Event Emission', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should emit sync-start before any network operations when sync() is called', async () => {
     await fc.assert(
-      fc.asyncProperty(dataArb, async (payload) => {
+      fc.asyncProperty(dataArb, async payload => {
         const pendingOp = {
           id: 'op-start',
           type: 'create' as const,
@@ -784,13 +839,24 @@ describe('Feature: syncra-offline-sync-engine, Property 32: Sync-Start Event Emi
 
         // Second fetch for delta pull
         let callCount = 0;
-        globalThis.fetch = vi.fn().mockImplementation(async (..._args: any[]) => {
+        globalThis.fetch = vi.fn().mockImplementation(async () => {
           callCount++;
           if (callCount === 1) {
             if (!events.includes('sync-start')) fetchCalledBeforeStart = true;
-            return { ok: true, status: 200, json: async () => ({ applied: [{ operationId: 'op-start', recordId: 'rec-start', newVersion: 1 }], rejected: [] }) };
+            return {
+              ok: true,
+              status: 200,
+              json: async () => ({
+                applied: [{ operationId: 'op-start', recordId: 'rec-start', newVersion: 1 }],
+                rejected: [],
+              }),
+            };
           }
-          return { ok: true, status: 200, json: async () => ({ records: [], deletedRecordIds: [] }) };
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ records: [], deletedRecordIds: [] }),
+          };
         });
 
         const sdk = makeOnlineSdk();
@@ -799,7 +865,7 @@ describe('Feature: syncra-offline-sync-engine, Property 32: Sync-Start Event Emi
 
         return events.includes('sync-start') && !fetchCalledBeforeStart;
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });
@@ -810,7 +876,9 @@ describe('Feature: syncra-offline-sync-engine, Property 32: Sync-Start Event Emi
 // ---------------------------------------------------------------------------
 
 describe('Feature: syncra-offline-sync-engine, Property 33: Sync-Complete Event Emission', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should emit sync-complete with applied/rejected counts after a successful sync()', async () => {
     await fc.assert(
@@ -845,12 +913,12 @@ describe('Feature: syncra-offline-sync-engine, Property 33: Sync-Complete Event 
           });
           vi.mocked(setMetadata).mockResolvedValue(undefined);
 
-          const applied = pendingOps.slice(0, appliedCount).map((op) => ({
+          const applied = pendingOps.slice(0, appliedCount).map(op => ({
             operationId: op.id,
             recordId: op.recordId,
             newVersion: 1,
           }));
-          const rejected = pendingOps.slice(appliedCount).map((op) => ({
+          const rejected = pendingOps.slice(appliedCount).map(op => ({
             operationId: op.id,
             recordId: op.recordId,
             reason: 'version_conflict',
@@ -859,7 +927,8 @@ describe('Feature: syncra-offline-sync-engine, Property 33: Sync-Complete Event 
             serverData: {},
           }));
 
-          globalThis.fetch = vi.fn()
+          globalThis.fetch = vi
+            .fn()
             .mockResolvedValueOnce({
               ok: true,
               status: 200,
@@ -873,7 +942,7 @@ describe('Feature: syncra-offline-sync-engine, Property 33: Sync-Complete Event 
 
           const sdk = makeOnlineSdk();
           const completeEvents: { applied: number; rejected: number }[] = [];
-          sdk.on('sync-complete', (e) => completeEvents.push(e));
+          sdk.on('sync-complete', e => completeEvents.push(e));
           await sdk.sync();
 
           return (
@@ -881,9 +950,9 @@ describe('Feature: syncra-offline-sync-engine, Property 33: Sync-Complete Event 
             completeEvents[0].applied === appliedCount &&
             completeEvents[0].rejected === rejectedCount
           );
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     );
   });
 });

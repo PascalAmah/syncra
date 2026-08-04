@@ -11,7 +11,7 @@ export class RecordsService {
       `INSERT INTO records (user_id, data, version, updated_at, created_at)
        VALUES ($1, $2, 1, NOW(), NOW())
        RETURNING id, data, version, updated_at, created_at`,
-      [userId, JSON.stringify(data)],
+      [userId, JSON.stringify(data)]
     );
     return result.rows[0];
   }
@@ -19,7 +19,7 @@ export class RecordsService {
   async findAllByUser(userId: string): Promise<SyncRecord[]> {
     const result = await this.db.query<SyncRecord>(
       `SELECT id, data, version, updated_at, created_at FROM records WHERE user_id = $1`,
-      [userId],
+      [userId]
     );
     return result.rows;
   }

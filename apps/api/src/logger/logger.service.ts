@@ -12,7 +12,12 @@ export interface LogEntry {
 
 @Injectable()
 export class LoggerService implements NestLoggerService {
-  private formatEntry(level: string, message: unknown, context?: string, extra?: Record<string, unknown>): string {
+  private formatEntry(
+    level: string,
+    message: unknown,
+    context?: string,
+    extra?: Record<string, unknown>
+  ): string {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,

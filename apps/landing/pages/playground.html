@@ -2,7 +2,7 @@
 <html class="dark" lang="en">
 <head>
   <meta charset="utf-8"/>
-  <style>html{background:#0e0e0e}</style>
+  <style>html{background:#04191a}</style>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>Playground | Syncra</title>
   <link href="https://fonts.googleapis.com" rel="preconnect"/>
@@ -16,25 +16,27 @@
       theme: {
         extend: {
           colors: {
-            "primary": "#69daff", "on-primary": "#004a5d", "primary-container": "#00cffc",
-            "on-primary-container": "#004050",
-            "tertiary": "#a1ffef", "on-tertiary": "#006459",
+            "primary": "#dfef47", "on-primary": "#0a2a29", "primary-container": "#c6de1e",
+            "on-primary-container": "#12210b", "primary-dim": "#c6de1e",
+            "secondary": "#5b9bff", "on-secondary": "#04264e", "secondary-container": "#123a63",
+            "on-secondary-container": "#bcd6ff",
+            "tertiary": "#ff9c8e", "on-tertiary": "#4a0a04",
             "error": "#ff716c", "error-dim": "#d7383b",
-            "surface": "#0e0e0e", "surface-container-lowest": "#000000",
-            "surface-container-low": "#131313", "surface-container": "#1a1919",
-            "surface-container-high": "#201f1f", "surface-container-highest": "#262626",
-            "on-surface": "#ffffff", "on-surface-variant": "#adaaaa",
-            "outline": "#777575", "outline-variant": "#494847",
-            "background": "#0e0e0e",
+            "surface": "#04191a", "surface-container-lowest": "#010e10",
+            "surface-container-low": "#0a2a29", "surface-container": "#0f2e2c",
+            "surface-container-high": "#153634", "surface-container-highest": "#1b3d3a",
+            "on-surface": "#ffffff", "on-surface-variant": "#9fb0ad",
+            "outline": "rgba(255,255,255,0.14)", "outline-variant": "rgba(255,255,255,0.08)",
+            "background": "#04191a",
           },
           fontFamily: { "headline": ["Space Grotesk"], "body": ["Inter"] },
-          borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+          borderRadius: { "DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1.25rem", "full": "9999px" },
         },
       },
     }
   </script>
   <link rel="stylesheet" href="../src/style.css"/>
-  <script src="../src/config.js"></script>
+  <script src="/config.js"></script>
 </head>
 <body class="bg-surface text-on-surface">
 <div id="page-loader"><span class="loader"></span></div>
@@ -77,6 +79,9 @@
     <div class="mb-8 reveal">
       <h1 class="font-headline text-3xl md:text-4xl font-bold text-white mb-2">Syncra Playground</h1>
       <p class="text-on-surface-variant font-body">Simulate online/offline sync behavior in real time.</p>
+      <div class="mt-4 bg-surface-container rounded-2xl border border-outline-variant/15 p-4 font-body text-sm text-on-surface-variant space-y-1">
+        <p>Syncra is an offline-first sync engine. This playground simulates the SDK's behavior: records are written locally and queued while offline, then pushed to the server when online.</p>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -137,7 +142,8 @@
             How it works
           </div>
           <p>Toggle offline to simulate a network drop. Records created while offline are queued locally.</p>
-          <p>Trigger Sync to push queued operations and pull remote updates — just like the real SDK.</p>
+          <p><span class="text-primary">Trigger Sync</span> mirrors the SDK's push + delta-pull cycle: it pushes queued operations, then pulls only the changes since the last sync.</p>
+          <p>The real SDK persists records to IndexedDB and retries failed pushes with exponential backoff — this playground replays those steps in real time.</p>
         </div>
       </div>
 
@@ -166,7 +172,7 @@
     <div class="col-span-2">
       <div class="font-headline text-lg font-bold text-white mb-4">Syncra</div>
       <p class="max-w-xs mb-4">Infrastructure for the offline-first web.</p>
-      <p>© <span id="footer-year"></span> Syncra. All rights reserved.</p>
+      <p>Â© <span id="footer-year"></span> Syncra. All rights reserved.</p>
     </div>
     <div>
       <h6 class="text-white font-bold mb-4">Product</h6>
@@ -179,8 +185,8 @@
     <div>
       <h6 class="text-white font-bold mb-4">Resources</h6>
       <ul class="space-y-3">
-        <li><a class="hover:text-primary transition-colors" href="/pages/docs.html">Documentation</a></li>
-        <li><a class="hover:text-primary transition-colors" href="https://github.com" target="_blank">GitHub</a></li>
+        <li><a class="hover:text-primary transition-colors" href="/docs">Documentation</a></li>
+        <li><a class="hover:text-primary transition-colors" href="https://github.com/PascalAmah/syncra" target="_blank">GitHub</a></li>
         <li><a class="hover:text-primary transition-colors" href="https://npmjs.com/package/syncra-sdk" target="_blank">npm</a></li>
       </ul>
     </div>
@@ -240,20 +246,20 @@
       dot.className = 'w-2.5 h-2.5 rounded-full bg-red-400';
       label.className = 'font-body text-sm font-semibold text-red-400';
       label.textContent = 'Offline';
-      addLog(t, 'OFFLINE', 'Network connection lost — operations will queue', 'text-red-400');
+      addLog(t, 'OFFLINE', 'Network connection lost â€” operations will queue', 'text-red-400');
     }
   }
 
   function triggerSync() {
     if (!isOnline) {
-      addLog(getTime(), 'WARN', 'Cannot sync — device is offline', 'text-yellow-400');
+      addLog(getTime(), 'WARN', 'Cannot sync â€” device is offline', 'text-yellow-400');
       return;
     }
     const steps = [
       [0,   'SYNC START', 'Initiating sync cycle...', 'text-primary'],
-      [300, '→', 'Pushing 3 queued operations', 'text-on-surface-variant'],
-      [600, '→', 'Pulling remote updates', 'text-on-surface-variant'],
-      [900, '✓', 'Applied 3 remote records', 'text-green-400'],
+      [300, 'â†’', 'Pushing 3 queued operations', 'text-on-surface-variant'],
+      [600, 'â†’', 'Pulling remote updates', 'text-on-surface-variant'],
+      [900, 'âœ“', 'Applied 3 remote records', 'text-green-400'],
       [1200,'SYNC COMPLETE', 'All operations synced successfully', 'text-primary'],
     ];
     steps.forEach(([delay, tag, msg, color]) => {
@@ -264,9 +270,9 @@
   function createRecord() {
     const t = getTime();
     if (isOnline) {
-      addLog(t, '→', 'Record created and synced immediately', 'text-on-surface-variant');
+      addLog(t, 'â†’', 'Record created and synced immediately', 'text-on-surface-variant');
     } else {
-      addLog(t, '→', 'Record queued (offline) — will sync when online', 'text-yellow-400');
+      addLog(t, 'â†’', 'Record queued (offline) â€” will sync when online', 'text-yellow-400');
     }
   }
 
@@ -279,8 +285,8 @@
   const seedLogs = [
     ['12:34:01', 'ONLINE',         'Network connection active',          'text-green-400'],
     ['12:34:02', 'SYNC START',     'Initiating sync cycle...',           'text-primary'],
-    ['12:34:03', '→',              'Pushed 3 operations',                'text-on-surface-variant'],
-    ['12:34:04', '✓',              'Applied 3 remote records',           'text-green-400'],
+    ['12:34:03', 'â†’',              'Pushed 3 operations',                'text-on-surface-variant'],
+    ['12:34:04', 'âœ“',              'Applied 3 remote records',           'text-green-400'],
     ['12:34:05', 'SYNC COMPLETE',  'All operations synced successfully', 'text-primary'],
   ];
   seedLogs.forEach(([t, tag, msg, color]) => addLog(t, tag, msg, color));

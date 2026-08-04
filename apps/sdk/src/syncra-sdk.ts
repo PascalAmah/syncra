@@ -1,15 +1,25 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ResolvedRecord, SyncPullResponse, SyncPushResponse, QueuedOperation } from './types';
 import { getRecord, upsertRecord, deleteRecord as deleteRecordFromStore } from './db/records-store';
-import { enqueueOperation, getPendingOperations, markOperationApplied, removeOperation, updateOperation } from './db/queue-store';
+import {
+  enqueueOperation,
+  getPendingOperations,
+  markOperationApplied,
+  removeOperation,
+  updateOperation,
+} from './db/queue-store';
 import { getMetadata, setMetadata } from './db/metadata-store';
 import { getDb } from './db/database';
 import { STORE_NAMES } from './db/schema';
 import { calculateNextRetryAt, calculateRetryDelay, MAX_RETRIES } from './retry';
+import { classifyResponseError, SyncError, wrapError } from './errors';
 import { NetworkStateManager, NetworkStateManagerOptions } from './network-state-manager';
 
 const LAST_CURSOR_KEY = 'lastCursor';
 const CLIENT_ID_KEY = 'clientId';
+
+/** Maximum job-status polls before giving up (avoids an unbounded hang). */
+const MAX_JOB_POLLS = 60;
 
 export interface LocalRecord {
   id: string;
@@ -78,7 +88,16 @@ export class SyncraSDK {
   /** Persistent client identifier, generated once and stored in IndexedDB */
   private clientId: string | null = null;
 
-  constructor(options: { baseUrl?: string; apiKey?: string; userId?: string; bearerToken?: string; syncInterval?: number; networkStateManagerOptions?: NetworkStateManagerOptions } = {}) {
+  constructor(
+    options: {
+      baseUrl?: string;
+      apiKey?: string;
+      userId?: string;
+      bearerToken?: string;
+      syncInterval?: number;
+      networkStateManagerOptions?: NetworkStateManagerOptions;
+    } = {}
+  ) {
     this.baseUrl = options.baseUrl ?? '';
     this.apiKey = options.apiKey ?? null;
     this.userId = options.userId ?? null;
@@ -141,7 +160,7 @@ export class SyncraSDK {
   }
 
   private emit<K extends keyof SyncEvents>(event: K, data?: SyncEvents[K]): void {
-    this.eventListeners.get(event)?.forEach((listener) => listener(data as any));
+    this.eventListeners.get(event)?.forEach(listener => listener(data as any));
   }
 
   // ---------------------------------------------------------------------------
@@ -218,7 +237,10 @@ export class SyncraSDK {
     this.stopPeriodicSync();
   }
 
-  async createRecord(data: Record<string, unknown>, collection: string = 'default'): Promise<LocalRecord> {
+  async createRecord(
+    data: Record<string, unknown>,
+    collection: string = 'default'
+  ): Promise<LocalRecord> {
     const id = uuidv4();
     const now = new Date();
     const nowIso = now.toISOString();
@@ -280,7 +302,11 @@ export class SyncraSDK {
     return record;
   }
 
-  async updateRecord(id: string, data: Record<string, unknown>, collection: string = 'default'): Promise<LocalRecord> {
+  async updateRecord(
+    id: string,
+    data: Record<string, unknown>,
+    collection: string = 'default'
+  ): Promise<LocalRecord> {
     // Fetch from IndexedDB first, fall back to in-memory cache
     const storedRecord = await getRecord(id);
     if (!storedRecord) {
@@ -406,7 +432,16 @@ export class SyncraSDK {
 
     if (pendingOperations.length === 0) {
       this.emit('sync-start');
-      await this.pullDelta();
+      try {
+        await this.pullDelta();
+      } catch (error) {
+        // A failed background delta pull is not fatal — emit the failure and
+        // let the next periodic sync retry. Returning a resolved result avoids
+        // unhandled rejections from un-awaited timer-driven sync() calls.
+        this.emit('sync-failed', {
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
       const syncResult: SyncResult = { applied: 0, rejected: 0 };
       this.emit('sync-complete', syncResult);
       return syncResult;
@@ -416,7 +451,7 @@ export class SyncraSDK {
 
     try {
       const body = {
-        operations: pendingOperations.map((op) => ({
+        operations: pendingOperations.map(op => ({
           id: op.id,
           type: op.type,
           recordId: op.recordId,
@@ -437,14 +472,21 @@ export class SyncraSDK {
       });
 
       if (!response.ok) {
-        if (response.status >= 500) {
+        const err = classifyResponseError(
+          response.status,
+          `Sync request failed with status ${response.status}`
+        );
+        if (err.retriable) {
+          // Transient failure (5xx, 408, 429) — apply retry logic and let the
+          // periodic sync retry. Returning a resolved result avoids unhandled
+          // rejections from un-awaited timer-driven sync() calls.
           await this.applyRetryLogic(pendingOperations);
           const syncResult: SyncResult = { applied: 0, rejected: 0 };
           this.emit('sync-complete', syncResult);
           return syncResult;
         }
-        const err = new Error(`Sync request failed with status ${response.status}`);
-        (err as any).nonRetriable = true;
+        // Non-retriable (e.g. validation) — throw so the catch block marks the
+        // operations as failed and emits sync-failed.
         throw err;
       }
 
@@ -485,33 +527,34 @@ export class SyncraSDK {
 
         this.emit('conflict', conflict);
 
-	        if (this.conflictHandler) {
-	          const resolved = this.conflictHandler(conflict);
-	          const existing = await getRecord(rejected.recordId);
-	          const opCollection = pendingOperations.find((op) => op.id === rejected.operationId)?.collection ?? 'default';
-	          if (existing) {
-	            await upsertRecord({
-	              ...existing,
-	              data: resolved.data as Record<string, any>,
-	              version: resolved.version,
-	              updated_at: new Date().toISOString(),
-	            });
-	          }
-	          // Re-enqueue an update operation with the resolved data
-	          const newOpId = uuidv4();
-	          await enqueueOperation({
-	            id: newOpId,
-	            type: 'update',
-	            recordId: rejected.recordId,
-	            payload: resolved.data as Record<string, any>,
-	            version: resolved.version,
-	            idempotencyKey: uuidv4(),
-	            status: 'pending',
-	            retries: 0,
-	            maxRetries: 5,
-	            createdAt: new Date(),
-	            collection: opCollection,
-	          });
+        if (this.conflictHandler) {
+          const resolved = this.conflictHandler(conflict);
+          const existing = await getRecord(rejected.recordId);
+          const opCollection =
+            pendingOperations.find(op => op.id === rejected.operationId)?.collection ?? 'default';
+          if (existing) {
+            await upsertRecord({
+              ...existing,
+              data: resolved.data as Record<string, any>,
+              version: resolved.version,
+              updated_at: new Date().toISOString(),
+            });
+          }
+          // Re-enqueue an update operation with the resolved data
+          const newOpId = uuidv4();
+          await enqueueOperation({
+            id: newOpId,
+            type: 'update',
+            recordId: rejected.recordId,
+            payload: resolved.data as Record<string, any>,
+            version: resolved.version,
+            idempotencyKey: uuidv4(),
+            status: 'pending',
+            retries: 0,
+            maxRetries: 5,
+            createdAt: new Date(),
+            collection: opCollection,
+          });
         } else {
           const existing = await getRecord(rejected.recordId);
           if (existing) {
@@ -538,11 +581,16 @@ export class SyncraSDK {
       this.emit('sync-complete', syncResult);
       return syncResult;
     } catch (error) {
-      if (!(error instanceof Error && (error as any).nonRetriable)) {
+      const syncErr = error instanceof SyncError ? error : wrapError(error);
+      if (syncErr.retriable) {
         await this.applyRetryLogic(pendingOperations);
+      } else {
+        // Non-retriable errors (e.g. validation) will never succeed — mark the
+        // affected operations as failed instead of retrying them forever.
+        await this.markOperationsFailed(pendingOperations);
       }
-      this.emit('sync-failed', { error: error instanceof Error ? error : new Error(String(error)) });
-      throw error;
+      this.emit('sync-failed', { error: syncErr });
+      throw syncErr;
     }
   }
 
@@ -552,16 +600,21 @@ export class SyncraSDK {
    * When completed, returns the SyncPushResponse result.
    * When failed, emits sync-failed and throws.
    */
-  private async pollJobStatus(
-    jobId: string,
-  ): Promise<SyncPushResponse> {
+  private async pollJobStatus(jobId: string): Promise<SyncPushResponse> {
     const headers = this.buildHeaders();
 
     let pollAttempt = 0;
 
     while (true) {
+      if (pollAttempt >= MAX_JOB_POLLS) {
+        // Give up polling after MAX_JOB_POLLS attempts. This is a transient
+        // condition (job may still complete), so it is NOT marked nonRetriable:
+        // the caller's retry logic will re-attempt the push on the next sync.
+        throw new Error(`Sync job ${jobId} did not finish after ${MAX_JOB_POLLS} polls`);
+      }
+
       const delay = calculateRetryDelay(pollAttempt);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise(resolve => setTimeout(resolve, delay));
 
       const pollResponse = await fetch(`${this.baseUrl}/sync/job/${jobId}`, { headers });
 
@@ -569,17 +622,20 @@ export class SyncraSDK {
         throw new Error(`Job status poll failed with status ${pollResponse.status}`);
       }
 
-      const jobStatus: { jobId: string; status: string; result?: SyncPushResponse; failedReason?: string } =
-        await pollResponse.json();
+      const jobStatus: {
+        jobId: string;
+        status: string;
+        result?: SyncPushResponse;
+        failedReason?: string;
+      } = await pollResponse.json();
 
       if (jobStatus.status === 'completed' && jobStatus.result) {
         return jobStatus.result;
       }
 
       if (jobStatus.status === 'failed') {
-        const error = new Error(jobStatus.failedReason ?? 'Sync job failed');
+        const error = new SyncError(jobStatus.failedReason ?? 'Sync job failed', false);
         this.emit('sync-failed', { error });
-        (error as any).nonRetriable = true;
         throw error;
       }
 
@@ -618,6 +674,17 @@ export class SyncraSDK {
       this.emit('sync-failed', {
         error: new Error(`${failedOps.length} operation(s) failed after max retries`),
       });
+    }
+  }
+
+  /**
+   * Permanently marks operations as failed without retrying.
+   * Used for non-retriable errors (e.g. validation) that will never succeed.
+   */
+  private async markOperationsFailed(operations: QueuedOperation[]): Promise<void> {
+    for (const op of operations) {
+      await updateOperation(op.id, { status: 'failed', retries: op.retries + 1 });
+      this.updateQueueEntryStatus(op.id, 'failed');
     }
   }
 
@@ -663,7 +730,7 @@ export class SyncraSDK {
     while (true) {
       const response = await fetch(
         `${this.baseUrl}/sync/updates?cursor=${cursor}&limit=${PAGE_SIZE}`,
-        { headers },
+        { headers }
       );
 
       if (!response.ok) {
@@ -704,7 +771,10 @@ export class SyncraSDK {
       }
 
       // Break when both records and tombstones are below a full page
-      if (delta.records.length < PAGE_SIZE && (!delta.tombstones || delta.tombstones.length < PAGE_SIZE)) {
+      if (
+        delta.records.length < PAGE_SIZE &&
+        (!delta.tombstones || delta.tombstones.length < PAGE_SIZE)
+      ) {
         break;
       }
 
@@ -717,7 +787,10 @@ export class SyncraSDK {
   }
 
   /** Helper to update the in-memory queue entry status */
-  private updateQueueEntryStatus(operationId: string, status: LocalQueuedOperation['status']): void {
+  private updateQueueEntryStatus(
+    operationId: string,
+    status: LocalQueuedOperation['status']
+  ): void {
     const entry = this.queue.get(operationId);
     if (entry) {
       this.queue.set(operationId, { ...entry, status });
@@ -727,13 +800,13 @@ export class SyncraSDK {
   getRecords(collection?: string): LocalRecord[] {
     const all = Array.from(this.records.values());
     if (collection !== undefined) {
-      return all.filter((r) => r.collection === collection);
+      return all.filter(r => r.collection === collection);
     }
     return all;
   }
 
   getPendingOperations(): LocalQueuedOperation[] {
-    return Array.from(this.queue.values()).filter((op) => op.status === 'pending');
+    return Array.from(this.queue.values()).filter(op => op.status === 'pending');
   }
 
   isOnlineState(): boolean {
@@ -744,7 +817,7 @@ export class SyncraSDK {
 export class Collection {
   constructor(
     private sdk: SyncraSDK,
-    readonly name: string,
+    readonly name: string
   ) {}
 
   async create(data: Record<string, unknown>): Promise<LocalRecord> {

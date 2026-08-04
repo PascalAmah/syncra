@@ -17,12 +17,15 @@ module.exports = {
     jest: true,
     browser: true,
   },
-  ignorePatterns: ['.eslintrc.js', 'dist'],
+  ignorePatterns: ['.eslintrc.js', '.eslintrc.cjs', 'vite.config.ts', 'dist'],
   rules: {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
+    // Vite's automatic JSX runtime resolves React for us; the classic
+    // `react-in-jsx-scope` rule would require an unnecessary `import React`.
+    'react/react-in-jsx-scope': 'off',
     'react-refresh/only-export-components': [
       'warn',
       { allowConstantExport: true },

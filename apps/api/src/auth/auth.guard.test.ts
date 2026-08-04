@@ -38,7 +38,9 @@ describe('AuthGuard', () => {
   });
 
   it('throws 401 when JWT verification fails', () => {
-    mockVerify.mockImplementation(() => { throw new Error('invalid'); });
+    mockVerify.mockImplementation(() => {
+      throw new Error('invalid');
+    });
     const ctx = makeContext('Bearer bad.token.here');
     expect(() => guard.canActivate(ctx)).toThrow(UnauthorizedException);
   });

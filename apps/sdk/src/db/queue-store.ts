@@ -8,7 +8,7 @@ export async function getPendingOperations(): Promise<QueuedOperation[]> {
   const all = await index.getAll('pending');
   const now = Date.now();
   // exclude operations whose retry delay has not yet elapsed
-  return all.filter((op) => !op.nextRetryAt || new Date(op.nextRetryAt).getTime() <= now);
+  return all.filter(op => !op.nextRetryAt || new Date(op.nextRetryAt).getTime() <= now);
 }
 
 export async function enqueueOperation(op: QueuedOperation): Promise<void> {
@@ -18,7 +18,7 @@ export async function enqueueOperation(op: QueuedOperation): Promise<void> {
 
 export async function updateOperationStatus(
   id: string,
-  status: QueuedOperation['status'],
+  status: QueuedOperation['status']
 ): Promise<void> {
   const db = await getDb();
   const tx = db.transaction(STORE_NAMES.OFFLINE_QUEUE, 'readwrite');
@@ -40,7 +40,7 @@ export async function removeOperation(id: string): Promise<void> {
 
 export async function updateOperation(
   id: string,
-  patch: Partial<Pick<QueuedOperation, 'status' | 'retries' | 'nextRetryAt'>>,
+  patch: Partial<Pick<QueuedOperation, 'status' | 'retries' | 'nextRetryAt'>>
 ): Promise<void> {
   const db = await getDb();
   const tx = db.transaction(STORE_NAMES.OFFLINE_QUEUE, 'readwrite');

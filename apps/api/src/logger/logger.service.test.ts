@@ -115,7 +115,7 @@ describe('HttpLoggingMiddleware', () => {
         listeners[event].push(cb);
       },
       emit(event: string) {
-        (listeners[event] ?? []).forEach((cb) => cb());
+        (listeners[event] ?? []).forEach(cb => cb());
       },
     } as unknown as import('express').Response & { emit(e: string): void };
     return { req, res };
@@ -139,7 +139,10 @@ describe('HttpLoggingMiddleware', () => {
 
   it('does not log password fields from request body', () => {
     const { req, res } = makeReqRes('POST', '/auth/login', 200);
-    (req as unknown as Record<string, unknown>)['body'] = { email: 'a@b.com', password: 'secret123' };
+    (req as unknown as Record<string, unknown>)['body'] = {
+      email: 'a@b.com',
+      password: 'secret123',
+    };
     const next = vi.fn();
     middleware.use(req, res, next);
     (res as unknown as { emit(e: string): void }).emit('finish');
@@ -211,7 +214,7 @@ describe('AllExceptionsFilter', () => {
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining('Unhandled exception'),
       err.stack,
-      'ExceptionFilter',
+      'ExceptionFilter'
     );
   });
 
