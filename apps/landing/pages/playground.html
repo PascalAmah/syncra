@@ -172,7 +172,7 @@
     <div class="col-span-2">
       <div class="font-headline text-lg font-bold text-white mb-4">Syncra</div>
       <p class="max-w-xs mb-4">Infrastructure for the offline-first web.</p>
-      <p>Â© <span id="footer-year"></span> Syncra. All rights reserved.</p>
+      <p>© <span id="footer-year"></span> Syncra. All rights reserved.</p>
     </div>
     <div>
       <h6 class="text-white font-bold mb-4">Product</h6>
@@ -246,20 +246,20 @@
       dot.className = 'w-2.5 h-2.5 rounded-full bg-red-400';
       label.className = 'font-body text-sm font-semibold text-red-400';
       label.textContent = 'Offline';
-      addLog(t, 'OFFLINE', 'Network connection lost â€” operations will queue', 'text-red-400');
+      addLog(t, 'OFFLINE', 'Network connection lost — operations will queue', 'text-red-400');
     }
   }
 
   function triggerSync() {
     if (!isOnline) {
-      addLog(getTime(), 'WARN', 'Cannot sync â€” device is offline', 'text-yellow-400');
+      addLog(getTime(), 'WARN', 'Cannot sync — device is offline', 'text-yellow-400');
       return;
     }
     const steps = [
       [0,   'SYNC START', 'Initiating sync cycle...', 'text-primary'],
-      [300, 'â†’', 'Pushing 3 queued operations', 'text-on-surface-variant'],
-      [600, 'â†’', 'Pulling remote updates', 'text-on-surface-variant'],
-      [900, 'âœ“', 'Applied 3 remote records', 'text-green-400'],
+      [300, '→', 'Pushing 3 queued operations', 'text-on-surface-variant'],
+      [600, '→', 'Pulling remote updates', 'text-on-surface-variant'],
+      [900, '✓', 'Applied 3 remote records', 'text-green-400'],
       [1200,'SYNC COMPLETE', 'All operations synced successfully', 'text-primary'],
     ];
     steps.forEach(([delay, tag, msg, color]) => {
@@ -270,9 +270,9 @@
   function createRecord() {
     const t = getTime();
     if (isOnline) {
-      addLog(t, 'â†’', 'Record created and synced immediately', 'text-on-surface-variant');
+      addLog(t, '→', 'Record created and synced immediately', 'text-on-surface-variant');
     } else {
-      addLog(t, 'â†’', 'Record queued (offline) â€” will sync when online', 'text-yellow-400');
+      addLog(t, '→', 'Record queued (offline) — will sync when online', 'text-yellow-400');
     }
   }
 
@@ -285,8 +285,8 @@
   const seedLogs = [
     ['12:34:01', 'ONLINE',         'Network connection active',          'text-green-400'],
     ['12:34:02', 'SYNC START',     'Initiating sync cycle...',           'text-primary'],
-    ['12:34:03', 'â†’',              'Pushed 3 operations',                'text-on-surface-variant'],
-    ['12:34:04', 'âœ“',              'Applied 3 remote records',           'text-green-400'],
+    ['12:34:03', '→',              'Pushed 3 operations',                'text-on-surface-variant'],
+    ['12:34:04', '✓',              'Applied 3 remote records',           'text-green-400'],
     ['12:34:05', 'SYNC COMPLETE',  'All operations synced successfully', 'text-primary'],
   ];
   seedLogs.forEach(([t, tag, msg, color]) => addLog(t, tag, msg, color));
